@@ -6,6 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $server = $null
+$backend = $null  # May be shared; only $server is owned by this launcher.
 $pet = $null
 $exitCode = 0
 $serverDir = Join-Path $PSScriptRoot 'anima-server'
@@ -73,27 +74,72 @@ try {
 
     $listeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
     if ($listeners | Where-Object { $_.Port -eq $settings.port }) {
-        throw "Port $($settings.port) is already in use. Stop the existing server or change PERSONA_PORT in anima-server\.env."
+        # Verify process identity before sending the local service token. Windows venv
+        # launchers may spawn a base Python process, so inspect its command line.
+        $owners = @(Get-NetTCPConnection -LocalPort $settings.port -State Listen |
+            Select-Object -ExpandProperty OwningProcess -Unique)
+        $existing = if ($owners.Count -eq 1) {
+            Get-CimInstance Win32_Process -Filter "ProcessId=$($owners[0])"
+        }
+        $expectedCommand = '^"?' + [regex]::Escape($python) + '"?\s+-m\s+persona_os\.main(?:\s|$)'
+        if (-not $existing -or $existing.CommandLine -notmatch $expectedCommand) {
+            throw "Port $($settings.port) is occupied by another or unrecognized process. Stop that service or change PERSONA_PORT in anima-server\.env."
+        }
+        try {
+            $health = Invoke-RestMethod -Uri "$api/health" -TimeoutSec 3
+            $runtime = Invoke-RestMethod -Uri "$api/v1/runtime" -TimeoutSec 3 -Headers @{ Authorization = "Bearer $env:ANIMA_TOKEN" }
+            if ($health.status -ne 'ok' -or $runtime.namespace -ne 'anima') {
+                throw 'Unexpected backend response.'
+            }
+        } catch {
+            throw "The existing project backend on port $($settings.port) failed its health or authentication check. Restart it or check ANIMA_TOKEN and anima-server\.env."
+        }
+        # A healthy older process can still lack routes required by the current client.
+        # Compare the checked-in API contract before reusing it, without sending mutations.
+        $runningSchema = Invoke-RestMethod -Uri "$api/openapi.json" -TimeoutSec 3
+        $expectedSchema = Get-Content -LiteralPath (Join-Path $serverDir 'docs\openapi.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $missingRoutes = @()
+        foreach ($route in $expectedSchema.paths.PSObject.Properties) {
+            $runningRoute = $runningSchema.paths.PSObject.Properties[$route.Name]
+            foreach ($method in $route.Value.PSObject.Properties.Name) {
+                if ($method -notin @('get', 'post', 'put', 'patch', 'delete', 'head', 'options')) { continue }
+                if (-not $runningRoute -or -not $runningRoute.Value.PSObject.Properties[$method]) {
+                    $missingRoutes += "$($method.ToUpper()) $($route.Name)"
+                }
+            }
+        }
+        if ($missingRoutes.Count) {
+            throw "Backend PID $($existing.ProcessId) is outdated; missing API: $($missingRoutes -join ', '). Stop that backend, then run this launcher again. Reopening only the pet will not update the server."
+        }
+        $backend = Get-Process -Id $existing.ProcessId
+        Write-Host "[Anima] Reusing existing project backend (PID $($backend.Id)): $api"
     }
 
-    $logDir = Join-Path $serverDir 'logs'
-    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-    $logPrefix = Join-Path $logDir (Get-Date -Format 'yyyyMMdd-HHmmss-fff')
-    $server = Start-Process -FilePath $python -ArgumentList '-m persona_os.main' -WorkingDirectory $serverDir -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logPrefix.out.log" -RedirectStandardError "$logPrefix.err.log"
-    $ready = $false
-    $deadline = (Get-Date).AddSeconds(60)
-    while ((Get-Date) -lt $deadline) {
-        if ($server.HasExited) { throw "Backend exited. See $logPrefix.err.log" }
-        try {
-            $health = Invoke-RestMethod -Uri "$api/health" -TimeoutSec 2
-            if ($health.status -eq 'ok') { $ready = $true; break }
-        } catch { }
-        Start-Sleep -Milliseconds 500
+    if (-not $backend) {
+        $logDir = Join-Path $serverDir 'logs'
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+        $logPrefix = Join-Path $logDir (Get-Date -Format 'yyyyMMdd-HHmmss-fff')
+        $server = Start-Process -FilePath $python -ArgumentList '-m persona_os.main' -WorkingDirectory $serverDir -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logPrefix.out.log" -RedirectStandardError "$logPrefix.err.log"
+        $ready = $false
+        $deadline = (Get-Date).AddSeconds(60)
+        while ((Get-Date) -lt $deadline) {
+            if ($server.HasExited) { throw "Backend exited. See $logPrefix.err.log" }
+            try {
+                $health = Invoke-RestMethod -Uri "$api/health" -TimeoutSec 2
+                if ($health.status -eq 'ok') { $ready = $true; break }
+            } catch { }
+            Start-Sleep -Milliseconds 500
+        }
+        if (-not $ready) { throw "Backend did not become ready in 60 seconds. See $logPrefix.err.log" }
+        Write-Host "[Anima] Backend ready: $api/docs"
+        Write-Host "[Anima] Logs: $logDir"
+        $backend = $server
     }
-    if (-not $ready) { throw "Backend did not become ready in 60 seconds. See $logPrefix.err.log" }
-    Write-Host "[Anima] Backend ready: $api/docs"
-    Write-Host "[Anima] Logs: $logDir"
     if ($ServerOnly) {
+        if (-not $server) {
+            Write-Host '[Anima] Existing backend is healthy; leaving it running.'
+            exit 0
+        }
         Write-Host '[Anima] Press Ctrl+C to stop.'
         while (-not $server.HasExited) { Start-Sleep -Milliseconds 500 }
         throw "Backend exited unexpectedly. See $logPrefix.err.log"
@@ -102,10 +148,14 @@ try {
     Write-Host '[Anima] Importing Godot assets (first launch may take a while)...'
     & $godot --headless --path $petDir --editor --import
     if ($LASTEXITCODE -ne 0) { throw 'Godot asset import failed. Check the output above.' }
-    Write-Host '[Anima] Opening desktop pet. Exit from its menu to stop both services.'
+    if ($server) {
+        Write-Host '[Anima] Opening desktop pet. Exit from its menu to stop both services.'
+    } else {
+        Write-Host '[Anima] Opening desktop pet. The shared backend will remain running when the pet exits.'
+    }
     $pet = Start-Process -FilePath $godot -ArgumentList @('--path', ('"{0}"' -f $petDir)) -WorkingDirectory $petDir -PassThru
     while (-not $pet.HasExited) {
-        if ($server.HasExited) { throw "Backend exited unexpectedly. See $logPrefix.err.log" }
+        if ($backend.HasExited) { throw 'Backend exited unexpectedly. Restart the launcher.' }
         Start-Sleep -Milliseconds 500
     }
     if ($pet.ExitCode -ne 0) { throw "Godot exited with code $($pet.ExitCode)." }

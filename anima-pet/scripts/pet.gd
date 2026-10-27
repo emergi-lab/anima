@@ -1,5 +1,5 @@
 extends Node2D
-## The desktop pet: a transparent, borderless, always-on-top window holding the persona's
+## The desktop pet: a transparent, borderless window holding the persona's
 ## PIPOYA avatar. It idles, wanders along the bottom of the screen (optional), reacts to
 ## clicks and drags, and opens the other windows from its right-click menu. Clicks outside
 ## the sprite pass through to the desktop.

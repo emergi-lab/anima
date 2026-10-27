@@ -60,6 +60,9 @@ const HITCH_MS := 1000
 const HITCH_LOG := "user://hitches.log"
 var _frame_at := 0
 var _recent: PackedStringArray = []
+var _review_fast_input := false
+var _resting_max_fps := 0
+var _resting_accumulated_input := true
 var _watching := ""  # the evolution being polled
 var _watch := Timer.new()
 var _watching_reflection := ""
@@ -72,6 +75,7 @@ func note(action: String) -> void:
 		_recent.remove_at(0)
 
 func _process(_delta: float) -> void:
+	_update_review_pacing()
 	var now := Time.get_ticks_msec()
 	if _frame_at > 0 and now - _frame_at > HITCH_MS:
 		var open := PackedStringArray()
@@ -87,7 +91,22 @@ func _process(_delta: float) -> void:
 				DisplayServer.get_screen_count(), "、".join(open), " / ".join(_recent)])
 	_frame_at = now
 
+## Windows' separate OpenGL windows otherwise wait for V-Sync before presenting
+## selection feedback. The project disables that wait on Windows and caps idle FPS;
+## only the focused workbench uses the faster input/render cadence.
+func _update_review_pacing() -> void:
+	if OS.get_name() != "Windows":
+		return
+	var active := is_instance_valid(_workbench) and _workbench.visible and _workbench.has_focus()
+	if active == _review_fast_input:
+		return
+	_review_fast_input = active
+	Engine.max_fps = 120 if active else _resting_max_fps
+	Input.use_accumulated_input = false if active else _resting_accumulated_input
+
 func _ready() -> void:
+	_resting_max_fps = Engine.max_fps
+	_resting_accumulated_input = Input.use_accumulated_input
 	api = Backend.new()
 	api.name = "Api"
 	add_child(api)
@@ -157,15 +176,21 @@ func refresh_personas() -> void:
 	personas_changed.emit()
 
 ## Delete a persona for good; if it is the current one, the pet becomes the next one (or none).
-func delete_persona(id: String) -> Dictionary:
-	var r: Dictionary = await api.request_json("/v1/personas/" + id.uri_encode(),
+func delete_persona(id: String, all_data := false) -> Dictionary:
+	var r: Dictionary = await api.request_json("/v1/personas/" + id.uri_encode() + ("/all-data" if all_data else ""),
 		HTTPClient.METHOD_DELETE)
 	if not r.ok:
 		return r
+	# An older backend must never silently treat full deletion as persona-only deletion.
+	if all_data and r.get("data", {}).get("status", "") != "deleted_all":
+		return {"ok": false, "error": "后端未确认删除全部信息，请重启后端后重试。"}
 	var key := _look_key(id)
 	if _cfg.has_section_key("looks", key):
 		_cfg.erase_section_key("looks", key)
 		_save()
+	for icon_key in _icons.keys():
+		if str(icon_key).begins_with(id + "|"):
+			_icons.erase(icon_key)
 	await refresh_personas()
 	if id == persona_id:
 		persona_switching.emit()
@@ -284,7 +309,7 @@ func open_chat_log(beside: Window = null) -> void:
 	show_window(_chat_log, ChatLog.BASE_SIZE, ChatLog.MIN_SIZE)
 	if beside != null and beside.visible:
 		_place_beside(_chat_log, beside)
-		float_up(_chat_log)
+		bring_forward(_chat_log)
 	_chat_log.reload()
 
 ## Put `win` next to `other` (right, else left) so neither covers the other, shrinking `win` to
@@ -452,16 +477,13 @@ func show_window(win: Window, base: Vector2i, min_base: Vector2i) -> void:
 	# popup() makes it transient, and on macOS a transient window is a child of the pet's window,
 	# dragged along whenever the pet walks or is moved.
 	win.transient = false
-	float_up(win)
+	bring_forward(win)
 	win.grab_focus()
 
-## Every window of the pet floats over other apps, all at one level, so the one opened or
-## clicked last is on top. Set explicitly: what popup() leaves behind differs (macOS), and a
-## window a level below the others stays under them whatever is clicked. After show(), like the
-## input bar: set before it, macOS comes back with it off.
-func float_up(win: Window) -> void:
+## Raise a window when requested without keeping it above unrelated applications.
+func bring_forward(win: Window) -> void:
 	win.always_on_top = false
-	win.always_on_top = true
+	DisplayServer.window_move_to_foreground(win.get_window_id())
 
 ## Pop a dialog owned by `owner_win` at the owner's scale (dialogs size themselves unscaled).
 func popup_dialog(dlg: Window, base: Vector2i, owner_win: Window) -> void:

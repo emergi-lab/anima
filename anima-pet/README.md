@@ -1,6 +1,6 @@
 # anima-pet · Anima 桌宠客户端
 
-Godot 4.7 原生窗口（透明、无边框、置顶）。形象、主题与形象编辑器来自 `ustc/ustc-discussion-student`，此后独立演进。
+Godot 4.7 原生窗口（桌宠透明、无边框；所有窗口默认不置顶）。形象、主题与形象编辑器来自 `ustc/ustc-discussion-student`，此后独立演进。
 
 ## 桌宠
 
@@ -42,6 +42,14 @@ Godot 4.7 原生窗口（透明、无边框、置顶）。形象、主题与形�
 字体在 `assets/fonts`（OFL）。
 
 ## 测试
+
+工作台删除人物：选中已导入的人物，点击右上角“删除人物…”。默认删除人物版本、聊天和记忆，保留初始蒸馏；勾选“同时删除全部蒸馏项目、素材和审阅结果”则清除该人物所有关联蒸馏，条目从列表消失。已标记“人格已删除”的条目可点击“删除全部信息…”清理残留。此操作不可恢复，不删除磁盘原始素材文件。新接口需要重启后端及桌宠；旧后端会提示错误，不会假报成功。`Godot --path anima-pet --script res://tests/workbench_delete_smoke.gd` 使用模拟后端与独立配置验证删除交互，不删除真实数据。
+
+Windows 窗口采用关闭 V-Sync 的显示策略，基础上限 60 帧；工作台获得焦点时上限 120 帧并关闭输入按帧合并，失焦或关闭后恢复。这样减少交互等待，同时避免桌宠独处时保持 120 帧；其他平台保持默认策略。部分设备可能出现撕裂。Godot MCP 实测绘制耗时不包含操作系统输入队列、桌面合成与屏幕扫描，不能作为完整的点击到显示延迟。
+
+真实审阅延迟检查：通过 Godot MCP 启动项目并打开已有项目的审阅页，在 `game_eval` 执行 `return await load('res://tests/review_latency_probe.gd').new().run(get_node('/root/App')._workbench)`。脚本逐行滚动并发送鼠标按下 / 松开事件，核对选中结果，报告输入处理与绘制完成的 p50 / p95 / 最大耗时；只切换当前选择，不提交审阅或调用模型。请先保存尚未保存的条目改写。该测量不包含操作系统输入队列与显示器扫描延迟。
+
+审阅交互回归：`Godot --path anima-pet --script res://tests/review_interaction_smoke.gd`，使用 63 条模拟条目和延迟响应验证证据缓存、快速切换、局部刷新和窗口不置顶；不连接真实后端，不改动用户配置。
 
 名牌回归：`Godot --path anima-pet --script res://tests/name_tag_smoke.gd`，验证开关、保存、底部位置及长名缩放，桌面截图写入 `user://name-tag-*.png`。使用独立临时配置，不改动真实设置。
 

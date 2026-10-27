@@ -149,7 +149,7 @@ func _appear() -> void:
 	get_child(1).modulate.a = 1.0
 	if not visible:
 		show()
-		always_on_top = true  # set before show() it comes back false on macOS: under other apps
+		always_on_top = false
 
 ## Break text into pages of at most LINES wrapped lines at WIDTH, preferring to end a page
 ## after punctuation in its second half rather than in the middle of a phrase.

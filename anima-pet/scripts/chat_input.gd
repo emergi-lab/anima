@@ -81,7 +81,7 @@ func open_for(persona_name: String) -> void:
 	_line.placeholder_text = _hint
 	if not visible:
 		show()
-		always_on_top = true  # set before show() it comes back false on macOS: under other apps
+		always_on_top = false
 	grab_focus()
 	_line.grab_focus()
 

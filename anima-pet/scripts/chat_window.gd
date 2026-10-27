@@ -141,7 +141,7 @@ func open_with(text: String) -> void:
 		position = fit.position
 		size = fit.size
 		show()
-		app.float_up(self)  # else it opens a level below the other windows, under the chat log
+		app.bring_forward(self)
 		await get_tree().process_frame
 		var placed: Rect2i = app.fit_on_screen(Rect2i(position, size))
 		if placed != Rect2i(position, size):  # the system moved it: back into view

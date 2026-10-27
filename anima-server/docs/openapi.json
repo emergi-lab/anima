@@ -3548,7 +3548,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Explain"
@@ -3633,7 +3633,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Action State"
@@ -3728,7 +3728,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Decide"
@@ -3822,7 +3822,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "List Distillations"
@@ -3906,7 +3906,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Create Distillation"
@@ -3991,7 +3991,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Get Distillation"
@@ -4080,7 +4080,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Characters"
@@ -4169,7 +4169,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Distill Entries"
@@ -4262,7 +4262,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Add Distill Entry"
@@ -4366,7 +4366,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Update Distill Entry"
@@ -4470,7 +4470,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      },
      "502": {
       "content": {
@@ -4584,7 +4584,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Distill Evidence"
@@ -4679,7 +4679,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Add Source"
@@ -4764,7 +4764,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Commit Distillation"
@@ -4853,7 +4853,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Discard Distillation"
@@ -4948,7 +4948,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Preview"
@@ -5043,7 +5043,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Start"
@@ -5129,7 +5129,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Create Episode"
@@ -5233,7 +5233,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Commit Action"
@@ -5327,7 +5327,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Discard Action"
@@ -5432,7 +5432,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      },
      "502": {
       "content": {
@@ -5547,7 +5547,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Episode Feedback"
@@ -5646,7 +5646,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Feedback Complete"
@@ -5735,7 +5735,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Episode Jobs"
@@ -5824,7 +5824,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Rerun Jobs"
@@ -5923,7 +5923,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Add Observations"
@@ -6018,7 +6018,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Close Episode"
@@ -6117,7 +6117,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Events"
@@ -6203,7 +6203,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Add Feedback"
@@ -6298,7 +6298,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Put Taxonomy"
@@ -6374,7 +6374,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "List Personas"
@@ -6463,7 +6463,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Delete Persona"
@@ -6546,10 +6546,99 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Get Persona"
+   }
+  },
+  "/v1/personas/{persona_id}/all-data": {
+   "delete": {
+    "operationId": "delete_persona_all_data_v1_personas__persona_id__all_data_delete",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "persona_id",
+      "required": true,
+      "schema": {
+       "title": "Persona Id",
+       "type": "string"
+      }
+     },
+     {
+      "in": "header",
+      "name": "authorization",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "title": "Response Delete Persona All Data V1 Personas  Persona Id  All Data Delete",
+         "type": "object"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "401": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Unauthorized"
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Unprocessable Content"
+     }
+    },
+    "summary": "Delete Persona All Data"
    }
   },
   "/v1/personas/{persona_id}/candidates": {
@@ -6661,7 +6750,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "List Candidates"
@@ -6754,7 +6843,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Chat End"
@@ -6859,7 +6948,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      },
      "502": {
       "content": {
@@ -6980,7 +7069,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Chat History"
@@ -7076,7 +7165,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Evolution Preview"
@@ -7171,7 +7260,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Create Evolution"
@@ -7260,7 +7349,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "History"
@@ -7360,7 +7449,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Materials"
@@ -7461,7 +7550,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Memories"
@@ -7557,7 +7646,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Reflection Preview"
@@ -7658,7 +7747,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "List Reflections"
@@ -7761,7 +7850,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      },
      "502": {
       "content": {
@@ -7870,7 +7959,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "List Versions"
@@ -7964,7 +8053,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Get Version"
@@ -8058,7 +8147,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Restore"
@@ -8144,7 +8233,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Import Personas"
@@ -8229,7 +8318,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Get Reflection"
@@ -8337,7 +8426,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      },
      "502": {
       "content": {
@@ -8452,7 +8541,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Approve Reflection"
@@ -8537,7 +8626,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Decline Reflection"
@@ -8615,7 +8704,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Runtime"
@@ -8691,7 +8780,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Get Model Settings"
@@ -8775,7 +8864,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Put Model Settings"
@@ -8861,7 +8950,7 @@
         }
        }
       },
-      "description": "Unprocessable Entity"
+      "description": "Unprocessable Content"
      }
     },
     "summary": "Test Model Settings"

@@ -5,7 +5,7 @@ the distillation that imported it. At most `PersonaStore.max_personas` per owner
 Deleting removes the persona's versions, material, actions, states, memories, monitoring,
 feedback, evolution candidates and evolutions, and every episode it was the only persona in
 (its chats). Its initial distillations stay, so the material can be imported again — without the
-chats and memories.
+chats and memories. Explicit all-data deletion also removes those initial distillations.
 """
 
 from __future__ import annotations
@@ -106,21 +106,25 @@ class Personas:
         items.sort(key=lambda c: (c.last_chat_at or c.created_at), reverse=True)
         return Roster(items=items, max=self.store.max_personas)
 
-    async def delete(self, ns: str, persona_id: str) -> None:
+    async def delete(self, ns: str, persona_id: str, *,
+                     include_distillations: bool = False) -> None:
         async with self.chat.lock(ns, persona_id):  # a reply still being stored finishes first
             await self.aftercare.idle()  # and so do memory jobs that would write afterwards
             async with self.sessions() as s, s.begin():
-                if await s.get(PersonaRow, (ns, persona_id)) is None:
+                linked = await s.scalar(select(DistillationRow.distillation_id).where(
+                    DistillationRow.namespace == ns, DistillationRow.persona_id == persona_id))
+                if (await s.get(PersonaRow, (ns, persona_id)) is None
+                        and not (include_distillations and linked)):
                     raise ServiceError(404, "persona_not_found", persona_id)
                 if await s.scalar(select(DistillationRow.distillation_id).where(
                         DistillationRow.namespace == ns, DistillationRow.persona_id == persona_id,
                         DistillationRow.stage == "running")):
                     raise ServiceError(409, "persona_busy",
                                        f"{persona_id} has a distillation or evolution running")
-                await self._purge(s, ns, persona_id)
+                await self._purge(s, ns, persona_id, include_distillations=include_distillations)
 
     @staticmethod
-    async def _purge(s, ns: str, persona_id: str) -> None:
+    async def _purge(s, ns: str, persona_id: str, *, include_distillations: bool = False) -> None:
         mine = (EpisodePersonaRow.namespace == ns) & (EpisodePersonaRow.persona_id == persona_id)
         joined = set((await s.scalars(select(EpisodePersonaRow.episode_id).where(mine))).all())
         shared = set((await s.scalars(select(EpisodePersonaRow.episode_id).where(
@@ -130,9 +134,11 @@ class Personas:
         actions = list((await s.scalars(select(ActionRow.action_id).where(
             ActionRow.namespace == ns, or_(ActionRow.persona_id == persona_id,
                                            ActionRow.episode_id.in_(alone))))).all())
-        evolutions = list((await s.scalars(select(DistillationRow.distillation_id).where(
-            DistillationRow.namespace == ns, DistillationRow.persona_id == persona_id,
-            DistillationRow.kind == "evolution"))).all())
+        distill_query = select(DistillationRow.distillation_id).where(
+            DistillationRow.namespace == ns, DistillationRow.persona_id == persona_id)
+        if not include_distillations:
+            distill_query = distill_query.where(DistillationRow.kind == "evolution")
+        distillations = list((await s.scalars(distill_query)).all())
         versions = list((await s.scalars(select(BeliefVersionRow.version_id).where(
             BeliefVersionRow.namespace == ns, BeliefVersionRow.persona_id == persona_id))).all())
 
@@ -140,7 +146,7 @@ class Personas:
             SelfReflectionRow.namespace == ns, SelfReflectionRow.persona_id == persona_id))).all())
         await s.execute(delete(ModelCallRow).where(ModelCallRow.namespace == ns, or_(
             ModelCallRow.action_id.in_(actions),
-            *[ModelCallRow.action_id.startswith(f"distill:{d}/") for d in evolutions],
+            *[ModelCallRow.action_id.startswith(f"distill:{d}/") for d in distillations],
             *[ModelCallRow.action_id.startswith(f"reflect:{r}/") for r in reflections])))
         for row in (ObservationRow, EpisodeJobRow):
             await s.execute(delete(row).where(row.namespace == ns, row.episode_id.in_(alone)))
@@ -156,17 +162,18 @@ class Personas:
             EpisodePersonaRow.namespace == ns, EpisodePersonaRow.episode_id.in_(alone)))
         await s.execute(delete(EpisodeRow).where(EpisodeRow.namespace == ns,
                                                  EpisodeRow.episode_id.in_(alone)))
-        if evolutions:
+        if distillations:
             await s.execute(delete(DistillEntryRow).where(
-                DistillEntryRow.distillation_id.in_(evolutions)))
+                DistillEntryRow.distillation_id.in_(distillations)))
             await s.execute(delete(DistillEvidenceRow).where(
-                DistillEvidenceRow.distillation_id.in_(evolutions)))
+                DistillEvidenceRow.distillation_id.in_(distillations)))
             await s.execute(delete(DistillSegmentRow).where(
-                DistillSegmentRow.distillation_id.in_(evolutions)))
+                DistillSegmentRow.distillation_id.in_(distillations)))
             await s.execute(delete(DistillSourceRow).where(
-                DistillSourceRow.distillation_id.in_(evolutions)))
+                DistillSourceRow.distillation_id.in_(distillations)))
             await s.execute(delete(DistillationRow).where(
-                DistillationRow.namespace == ns, DistillationRow.distillation_id.in_(evolutions)))
+                DistillationRow.namespace == ns,
+                DistillationRow.distillation_id.in_(distillations)))
         await s.execute(delete(PersonaRow).where(PersonaRow.namespace == ns,
                                                  PersonaRow.persona_id == persona_id))
         await s.execute(delete(BeliefEntryRow).where(BeliefEntryRow.version_id.in_(versions)))

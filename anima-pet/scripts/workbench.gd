@@ -52,12 +52,22 @@ var _list: Array = []  # Distillation summaries, newest first
 var _current: Dictionary = {}
 var _entries: Array = []  # ReviewedEntry
 var _entry_index := -1
+var _entry_items: Dictionary = {}  # entry_id -> existing TreeItem; update one row after review
+var _evidence_cache: Dictionary = {}
+var _evidence_request := 0  # stale responses must never replace the current selection
 var _poll := 0.0
 var _busy := false
 
 var _sidebar: VBoxContainer  # "我的蒸馏": one row per distillation
 var _drop_dialog: ConfirmationDialog
 var _drop_id := ""
+var _delete_persona_button: Button
+var _delete_persona_dialog: ConfirmationDialog
+var _delete_all_data: CheckBox
+var _delete_description: Label
+var _pending_persona := {}
+var _deleting_persona := false
+var _load_request := 0
 var _status: Label
 var _steps: Array[Label] = []
 var _portrait: AvatarView
@@ -157,6 +167,7 @@ func _ready() -> void:
 		root.add_child(panel)
 	_build_dialogs()
 	app.look_changed.connect(_refresh_avatars)
+	app.personas_changed.connect(_on_personas_changed)
 	app.model_ready_changed.connect(func() -> void: _no_model.visible = not app.model_ready)
 	visibility_changed.connect(func() -> void:
 		if visible:
@@ -183,6 +194,10 @@ func _build_header() -> HBoxContainer:
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(_status)
+	_delete_persona_button = _button("删除人物…", _ask_delete_persona)
+	_delete_persona_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_delete_persona_button.add_theme_color_override("font_color", UI.C_ERROR)
+	row.add_child(_delete_persona_button)
 	_portrait = AvatarView.new()
 	_portrait.pixel_scale = 2
 	_portrait.show_name = false
@@ -302,6 +317,88 @@ func _ask_drop(d: Dictionary) -> void:
 	_drop_id = str(d.distillation_id)
 	_drop_dialog.dialog_text = "删除「%s」这个草稿？已上传的素材也会一起删除。" % _label_of(d)
 	app.popup_dialog(_drop_dialog, Vector2i(460, 170), self)
+
+func _has_current_persona() -> bool:
+	if _current.get("stage", "") != "committed":
+		return false
+	var id := str(_current.get("persona_id", ""))
+	return app.personas.any(func(p: Dictionary) -> bool: return str(p.persona_id) == id)
+
+func _update_delete_persona_button() -> void:
+	_delete_persona_button.visible = _current.get("stage", "") == "committed" and not str(_current.get("persona_id", "")).is_empty()
+	_delete_persona_button.text = "删除人物…" if _has_current_persona() else "删除全部信息…"
+	_delete_persona_button.disabled = _deleting_persona
+
+func _on_personas_changed() -> void:
+	_fill_sidebar()
+	_update_delete_persona_button()
+	if _current.get("stage", "") == "committed":
+		var deleted := not _has_current_persona()
+		if deleted != _deleted:
+			_deleted = deleted
+			_done_loaded = ""
+			if deleted:
+				_reviewing = true
+			_render()
+
+func _ask_delete_persona() -> void:
+	if _deleting_persona or not _delete_persona_button.visible:
+		return
+	# Capture the target now; switching projects must not change what is confirmed.
+	_pending_persona = {"id": str(_current.persona_id), "name": _display_name()}
+	_delete_all_data.set_pressed_no_signal(not _has_current_persona())
+	_delete_all_data.disabled = not _has_current_persona()
+	_update_delete_description()
+	app.popup_dialog(_delete_persona_dialog, Vector2i(580, 310), self)
+
+func _update_delete_description() -> void:
+	if _pending_persona.is_empty():
+		return
+	var scope := ("人物版本、聊天、记忆，以及这个人物的所有关联蒸馏项目、\n素材、证据、审阅结果和模型调用记录都会永久删除。\n人物和关联项目将从列表消失，无法恢复或重新导入。"
+		if _delete_all_data.button_pressed else
+		"人物版本、聊天记录和记忆都会删除，无法恢复。\n蒸馏素材和审阅结果会保留在工作台，可重新导入人物；\n重新导入不会恢复原来的聊天和记忆。")
+	_delete_description.text = "永久删除「%s」？\n\n%s" % [_pending_persona.name, scope]
+	_delete_persona_dialog.ok_button_text = "永久删除全部信息" if _delete_all_data.button_pressed else "永久删除人物"
+
+func _delete_persona() -> void:
+	if _deleting_persona or _pending_persona.is_empty():
+		return
+	var target := _pending_persona
+	var all_data := _delete_all_data.button_pressed
+	_pending_persona = {}
+	_deleting_persona = true
+	_update_delete_persona_button()
+	_say("正在删除人物「%s」…" % target.name)
+	var r: Dictionary = await app.delete_persona(str(target.id), all_data)
+	if r.ok and all_data:
+		await _remove_persona_projects(str(target.id))
+	_deleting_persona = false
+	_update_delete_persona_button()
+	if not r.ok:
+		_say("没有删除「%s」：%s" % [target.name,
+			("它正在蒸馏或演化，等结束后再删。" if r.get("code") == "persona_busy" else
+			"服务不支持完整清理或资料已不存在；请先重启后端，再刷新工作台。" if all_data and int(r.get("status", 0)) == 404 else str(r.error))], true)
+	elif all_data:
+		_say("已永久删除「%s」的全部信息和关联蒸馏项目。" % target.name)
+	elif str(_current.get("persona_id", "")) == str(target.id):
+		_say("已删除人物「%s」。蒸馏素材和审阅结果已保留。" % target.name)
+
+func _remove_persona_projects(id: String) -> void:
+	_load_request += 1 # discard project loads started before the deletion completed
+	_list = _list.filter(func(d: Dictionary) -> bool: return str(d.get("persona_id", "")) != id)
+	if str(_current.get("persona_id", "")) == id:
+		_current = {}
+		_entry_index = -1
+		_entries.clear()
+		_evidence_request += 1
+		_evidence_cache.clear()
+		_done_loaded = ""
+		_fill_tree()
+		_show_entry()
+		_render()
+	_fill_sidebar()
+	if _current.is_empty() and not _list.is_empty():
+		await _load(str(_list[0].distillation_id))
 
 func _drop() -> void:
 	var r := await _call("/v1/distillations/%s:discard" % _drop_id, HTTPClient.METHOD_POST, {})
@@ -505,12 +602,35 @@ func _build_review() -> VBoxContainer:
 	right.add_child(_evidence)
 	_context = RichTextLabel.new()
 	_context.bbcode_enabled = true
+	_context.threaded = true  # shape long source passages off the UI thread
 	_context.selection_enabled = true
 	_context.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(_context)
 	return col
 
 func _build_dialogs() -> void:
+	_delete_persona_dialog = ConfirmationDialog.new()
+	_delete_persona_dialog.theme = app.theme.duplicate()
+	var delete_panel := _flat(UI.C_SURFACE)
+	delete_panel.set_content_margin_all(12)
+	_delete_persona_dialog.theme.set_stylebox("panel", "AcceptDialog", delete_panel)
+	_delete_persona_dialog.title = "永久删除人物"
+	_delete_persona_dialog.ok_button_text = "永久删除"
+	_delete_persona_dialog.cancel_button_text = "取消"
+	_delete_persona_dialog.confirmed.connect(_delete_persona)
+	_delete_persona_dialog.canceled.connect(func() -> void: _pending_persona = {})
+	var delete_options := VBoxContainer.new()
+	delete_options.add_theme_constant_override("separation", 18)
+	_delete_persona_dialog.add_child(delete_options)
+	_delete_description = UI.label("", 15)
+	_delete_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_delete_description.custom_minimum_size = Vector2(540, 170)
+	delete_options.add_child(_delete_description)
+	_delete_all_data = CheckBox.new()
+	_delete_all_data.text = "同时删除全部蒸馏项目、素材和审阅结果"
+	_delete_all_data.toggled.connect(func(_pressed: bool) -> void: _update_delete_description())
+	delete_options.add_child(_delete_all_data)
+	add_child(_delete_persona_dialog)
 	_files = FileDialog.new()
 	_files.use_native_dialog = true
 	_files.access = FileDialog.ACCESS_FILESYSTEM
@@ -790,12 +910,20 @@ func _create() -> void:
 		_refresh_list(str(r.data.distillation_id))
 
 func _load(id: String) -> void:
+	_load_request += 1
+	var request := _load_request
 	var r := await _call("/v1/distillations/" + id)
-	if not r.ok:
+	if not r.ok or request != _load_request:
 		return
 	var before := str(_current.get("stage", ""))
 	var same := str(_current.get("distillation_id", "")) == id
 	if not same:  # another distillation: its own form, not the last one's
+		_evidence_request += 1
+		_evidence_cache.clear()
+		_entries.clear()
+		_entry_index = -1
+		_fill_tree()
+		_show_entry()
 		_reviewing = false
 		_deleted = false
 		_name.text = ""
@@ -835,6 +963,7 @@ func _refresh_avatars() -> void:
 		view.spec = app.look(id)
 
 func _render() -> void:
+	_update_delete_persona_button()
 	var stage := str(_current.get("stage", ""))
 	_setup.visible = stage == "draft"
 	_progress.visible = stage in ["running", "failed"]
@@ -950,17 +1079,19 @@ func _resume_run() -> void:
 # ---- review -------------------------------------------------------------------------------
 
 func _load_entries() -> void:
-	var r := await _call(_base() + "/entries")
-	if r.ok:
+	var base := _base()
+	var r := await _call(base + "/entries")
+	if r.ok and not _current.is_empty() and _base() == base:
 		_entries = r.data
 		_entry_index = -1
 		_fill_tree()
 		_show_entry()
 
 func _fill_tree() -> void:
+	_tree.set_block_signals(true)
+	_entry_items.clear()
 	_tree.clear()
 	var root := _tree.create_item()
-	var counts := {}
 	for layer in LAYERS:
 		var group := _tree.create_item(root)
 		group.set_text(0, "%s %s" % [layer, LAYER_NAMES[layer]])
@@ -970,17 +1101,28 @@ func _fill_tree() -> void:
 			var e: Dictionary = _entries[i]
 			if e.entry.layer != layer:
 				continue
-			var status := str(e.status)
-			counts[status] = int(counts.get(status, 0)) + 1
 			var item := _tree.create_item(group)
-			var mark := " ！" if e.review_note != null and status == "proposed" else ""
-			item.set_text(0, "［%s］%s · %s%s" % [STATUS_NAMES[status], CONSTRUCTS.get(e.entry.construct, ""), _short(str(e.entry.text)), mark])
-			item.set_custom_color(0, STATUS_COLORS[status])
-			item.set_metadata(0, i)
-			if e.review_note != null:
-				item.set_tooltip_text(0, "复核意见：" + str(e.review_note))
+			_entry_items[str(e.entry.entry_id)] = item
+			_update_entry_item(item, i)
 			if i == _entry_index:
 				item.select(0)
+	_tree.set_block_signals(false)
+	_update_counts()
+
+func _update_entry_item(item: TreeItem, index: int) -> void:
+	var e: Dictionary = _entries[index]
+	var status := str(e.status)
+	var mark := " ！" if e.review_note != null and status == "proposed" else ""
+	item.set_text(0, "［%s］%s · %s%s" % [STATUS_NAMES[status], CONSTRUCTS.get(e.entry.construct, ""), _short(str(e.entry.text)), mark])
+	item.set_custom_color(0, STATUS_COLORS[status])
+	item.set_metadata(0, index)
+	item.set_tooltip_text(0, "复核意见：" + str(e.review_note) if e.review_note != null else "")
+
+func _update_counts() -> void:
+	var counts := {}
+	for e in _entries:
+		var status := str(e.status)
+		counts[status] = int(counts.get(status, 0)) + 1
 	var parts: Array[String] = []
 	for status in STATUS_NAMES:
 		if counts.has(status):
@@ -994,13 +1136,17 @@ func _on_tree_selected() -> void:
 	var item := _tree.get_selected()
 	if item == null or item.get_metadata(0) == null:
 		return
-	_entry_index = int(item.get_metadata(0))
+	var index := int(item.get_metadata(0))
+	if index == _entry_index:
+		return
+	_entry_index = index
 	_show_entry()
 
 func _level(words: Array, v: float) -> String:
 	return words[clampi(int(v * words.size()), 0, words.size() - 1)]
 
 func _show_entry() -> void:
+	_evidence_request += 1
 	_evidence.clear()
 	_context.text = ""
 	var has := _entry_index >= 0 and _entry_index < _entries.size()
@@ -1047,18 +1193,40 @@ func _show_entry() -> void:
 	_context.visible = not e.evidence.is_empty()
 
 func _on_evidence_selected(index: int) -> void:
-	var r := await _call(_base() + "/evidence/" + str(_evidence.get_item_metadata(index)))
-	if not r.ok:
+	if index < 0 or index >= _evidence.item_count:
 		return
-	var ev: Dictionary = r.data
+	_evidence_request += 1
+	var request := _evidence_request
+	var base := _base()
+	var path := base + "/evidence/" + str(_evidence.get_item_metadata(index))
+	var ev: Dictionary
+	if _evidence_cache.has(path):
+		ev = _evidence_cache[path]
+	else:
+		_context.text = "正在读取原文…"
+		# Read-only details do not block the workbench or surface stale errors elsewhere.
+		var r: Dictionary = await app.api.request_json(path)
+		if _current.is_empty() or _base() != base:
+			return
+		if r.ok:
+			_evidence_cache[path] = r.data
+		if request != _evidence_request:
+			return
+		if not r.ok:
+			_context.text = _escape(str(r.error))
+			return
+		ev = r.data
 	var segment := str(ev.segment_text)
 	var at := int(ev.quote_offset)
 	var length := str(ev.quote).length()
 	_context.text = "[color=#5f4630]%s · %s：%s[/color]\n\n%s[bgcolor=#f3d27a][b]%s[/b][/bgcolor]%s" % [
-		ev.source, CONSTRUCTS.get(ev.construct, ""), _escape(str(ev.note)),
+		_escape(str(ev.source)), CONSTRUCTS.get(ev.construct, ""), _escape(str(ev.note)),
 		_escape(segment.left(at)), _escape(segment.substr(at, length)), _escape(segment.substr(at + length))]
 	# Scroll so the highlighted quote is in view.
-	await get_tree().process_frame
+	if not _context.is_finished():
+		await _context.finished
+	if request != _evidence_request:
+		return
 	var line := _context.get_character_line(at + str(ev.note).length() + str(ev.source).length() + 8)
 	_context.scroll_to_line(maxi(0, line - 2))
 
@@ -1069,11 +1237,21 @@ func _patch(body: Dictionary) -> void:
 	if _entry_index < 0:
 		return
 	var e: Dictionary = _entries[_entry_index]
-	var r := await _call(_base() + "/entries/" + str(e.entry.entry_id), HTTPClient.METHOD_PATCH, body)
-	if r.ok:
-		_entries[_entry_index] = r.data
-		_fill_tree()
-		_show_entry()
+	var base := _base()
+	var entry_id := str(e.entry.entry_id)
+	var r := await _call(base + "/entries/" + entry_id, HTTPClient.METHOD_PATCH, body)
+	if not r.ok or _current.is_empty() or _base() != base:
+		return
+	for i in _entries.size():
+		if str(_entries[i].entry.entry_id) != entry_id:
+			continue
+		_entries[i] = r.data
+		if _entry_items.has(entry_id):
+			_update_entry_item(_entry_items[entry_id], i)
+		_update_counts()
+		if i == _entry_index:
+			_show_entry()
+		break
 
 func _save_text() -> void:
 	var text := _text.text.strip_edges()

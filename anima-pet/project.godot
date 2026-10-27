@@ -12,6 +12,7 @@ config_version=5
 
 config/name="Anima"
 run/main_scene="res://scenes/pet.tscn"
+run/max_fps.windows=60
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
@@ -26,10 +27,10 @@ window/size/viewport_width=200
 window/size/viewport_height=220
 window/size/resizable=false
 window/size/borderless=true
-window/size/always_on_top=true
 window/size/transparent=true
 window/subwindows/embed_subwindows=false
 window/per_pixel_transparency/allowed=true
+window/vsync/vsync_mode.windows=0
 
 [editor_plugins]
 

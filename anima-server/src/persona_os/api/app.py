@@ -193,6 +193,11 @@ def create_app(settings: Settings | None = None, model: PersonaModel | None = No
         await personas.delete(ns, persona_id)
         return {"status": "deleted"}
 
+    @app.delete(f"/{API_VERSION}/personas/{{persona_id}}/all-data", responses=ERRORS)
+    async def delete_persona_all_data(persona_id: str, ns: Ns) -> dict[str, str]:
+        await personas.delete(ns, persona_id, include_distillations=True)
+        return {"status": "deleted_all"}
+
     @app.get(f"/{API_VERSION}/personas/{{persona_id}}", responses=ERRORS)
     async def get_persona(persona_id: str, ns: Ns) -> c.PersonaSummary:
         return await store.summary(ns, persona_id)

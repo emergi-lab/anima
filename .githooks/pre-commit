@@ -1,0 +1,20 @@
+#!/bin/sh
+# Enable once per clone: git config core.hooksPath .githooks
+root=$(git rev-parse --show-toplevel) || exit 1
+
+# Windows may expose a python3 Store alias even when Python is installed as python.
+# Probe the interpreter itself rather than trusting command -v alone.
+for interpreter in python3 python; do
+    if command -v "$interpreter" >/dev/null 2>&1 &&
+        "$interpreter" -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then
+        exec "$interpreter" "$root/tools/check_publish.py"
+    fi
+done
+
+if command -v py >/dev/null 2>&1 &&
+    py -3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' >/dev/null 2>&1; then
+    exec py -3 "$root/tools/check_publish.py"
+fi
+
+echo 'pre-commit: Python 3.9+ is required. Install Python and add it to PATH, then retry.' >&2
+exit 1

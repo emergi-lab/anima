@@ -1,0 +1,634 @@
+{
+ "frame": [
+  32,
+  32
+ ],
+ "sheet": [
+  96,
+  128
+ ],
+ "rows": [
+  "down",
+  "left",
+  "right",
+  "up"
+ ],
+ "bodies": {
+  "f": [
+   "body/f1.png",
+   "body/f2.png",
+   "body/f3.png",
+   "body/f4.png"
+  ],
+  "m": [
+   "body/m1.png",
+   "body/m2.png",
+   "body/m3.png",
+   "body/m4.png"
+  ]
+ },
+ "eyes": [
+  {
+   "id": "f01",
+   "file": "eyes/f01.png"
+  },
+  {
+   "id": "f02",
+   "file": "eyes/f02.png"
+  },
+  {
+   "id": "f03",
+   "file": "eyes/f03.png"
+  },
+  {
+   "id": "f04",
+   "file": "eyes/f04.png"
+  },
+  {
+   "id": "f05",
+   "file": "eyes/f05.png"
+  },
+  {
+   "id": "f06",
+   "file": "eyes/f06.png"
+  },
+  {
+   "id": "f07",
+   "file": "eyes/f07.png"
+  },
+  {
+   "id": "f08",
+   "file": "eyes/f08.png"
+  },
+  {
+   "id": "f09",
+   "file": "eyes/f09.png"
+  },
+  {
+   "id": "f10",
+   "file": "eyes/f10.png"
+  },
+  {
+   "id": "m01",
+   "file": "eyes/m01.png"
+  },
+  {
+   "id": "m02",
+   "file": "eyes/m02.png"
+  },
+  {
+   "id": "m03",
+   "file": "eyes/m03.png"
+  },
+  {
+   "id": "m04",
+   "file": "eyes/m04.png"
+  },
+  {
+   "id": "m05",
+   "file": "eyes/m05.png"
+  },
+  {
+   "id": "m06",
+   "file": "eyes/m06.png"
+  },
+  {
+   "id": "m07",
+   "file": "eyes/m07.png"
+  },
+  {
+   "id": "m08",
+   "file": "eyes/m08.png"
+  },
+  {
+   "id": "m09",
+   "file": "eyes/m09.png"
+  },
+  {
+   "id": "m10",
+   "file": "eyes/m10.png"
+  }
+ ],
+ "hair": [
+  {
+   "id": "f01",
+   "front": {
+    "dark": "hair/f01_front_dark.png",
+    "light": "hair/f01_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f01_back_dark.png",
+    "light": "hair/f01_back_light.png"
+   }
+  },
+  {
+   "id": "f02",
+   "front": {
+    "dark": "hair/f02_front_dark.png",
+    "light": "hair/f02_front_light.png"
+   }
+  },
+  {
+   "id": "f03",
+   "front": {
+    "dark": "hair/f03_front_dark.png",
+    "light": "hair/f03_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f03_back_dark.png",
+    "light": "hair/f03_back_light.png"
+   }
+  },
+  {
+   "id": "f04",
+   "front": {
+    "dark": "hair/f04_front_dark.png",
+    "light": "hair/f04_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f04_back_dark.png",
+    "light": "hair/f04_back_light.png"
+   }
+  },
+  {
+   "id": "f05",
+   "front": {
+    "dark": "hair/f05_front_dark.png",
+    "light": "hair/f05_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f05_back_dark.png",
+    "light": "hair/f05_back_light.png"
+   }
+  },
+  {
+   "id": "f06",
+   "front": {
+    "dark": "hair/f06_front_dark.png",
+    "light": "hair/f06_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f06_back_dark.png",
+    "light": "hair/f06_back_light.png"
+   }
+  },
+  {
+   "id": "f07",
+   "front": {
+    "dark": "hair/f07_front_dark.png",
+    "light": "hair/f07_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f07_back_dark.png",
+    "light": "hair/f07_back_light.png"
+   }
+  },
+  {
+   "id": "f08",
+   "front": {
+    "dark": "hair/f08_front_dark.png",
+    "light": "hair/f08_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f08_back_dark.png",
+    "light": "hair/f08_back_light.png"
+   }
+  },
+  {
+   "id": "f09",
+   "front": {
+    "dark": "hair/f09_front_dark.png",
+    "light": "hair/f09_front_light.png"
+   }
+  },
+  {
+   "id": "f10",
+   "front": {
+    "dark": "hair/f10_front_dark.png",
+    "light": "hair/f10_front_light.png"
+   }
+  },
+  {
+   "id": "f11",
+   "front": {
+    "dark": "hair/f11_front_dark.png",
+    "light": "hair/f11_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f11_back_dark.png",
+    "light": "hair/f11_back_light.png"
+   }
+  },
+  {
+   "id": "f12",
+   "front": {
+    "dark": "hair/f12_front_dark.png",
+    "light": "hair/f12_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f12_back_dark.png",
+    "light": "hair/f12_back_light.png"
+   }
+  },
+  {
+   "id": "f13",
+   "front": {
+    "dark": "hair/f13_front_dark.png",
+    "light": "hair/f13_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f13_back_dark.png",
+    "light": "hair/f13_back_light.png"
+   }
+  },
+  {
+   "id": "f14",
+   "front": {
+    "dark": "hair/f14_front_dark.png",
+    "light": "hair/f14_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f14_back_dark.png",
+    "light": "hair/f14_back_light.png"
+   }
+  },
+  {
+   "id": "f15",
+   "front": {
+    "dark": "hair/f15_front_dark.png",
+    "light": "hair/f15_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f15_back_dark.png",
+    "light": "hair/f15_back_light.png"
+   }
+  },
+  {
+   "id": "f16",
+   "front": {
+    "dark": "hair/f16_front_dark.png",
+    "light": "hair/f16_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f16_back_dark.png",
+    "light": "hair/f16_back_light.png"
+   }
+  },
+  {
+   "id": "f17",
+   "front": {
+    "dark": "hair/f17_front_dark.png",
+    "light": "hair/f17_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f17_back_dark.png",
+    "light": "hair/f17_back_light.png"
+   }
+  },
+  {
+   "id": "f18",
+   "front": {
+    "dark": "hair/f18_front_dark.png",
+    "light": "hair/f18_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f18_back_dark.png",
+    "light": "hair/f18_back_light.png"
+   }
+  },
+  {
+   "id": "f19",
+   "front": {
+    "dark": "hair/f19_front_dark.png",
+    "light": "hair/f19_front_light.png"
+   },
+   "back": {
+    "dark": "hair/f19_back_dark.png",
+    "light": "hair/f19_back_light.png"
+   }
+  },
+  {
+   "id": "m01",
+   "front": {
+    "dark": "hair/m01_front_dark.png",
+    "light": "hair/m01_front_light.png"
+   }
+  },
+  {
+   "id": "m02",
+   "front": {
+    "dark": "hair/m02_front_dark.png",
+    "light": "hair/m02_front_light.png"
+   }
+  },
+  {
+   "id": "m03",
+   "front": {
+    "dark": "hair/m03_front_dark.png",
+    "light": "hair/m03_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m03_back_dark.png",
+    "light": "hair/m03_back_light.png"
+   }
+  },
+  {
+   "id": "m04",
+   "front": {
+    "dark": "hair/m04_front_dark.png",
+    "light": "hair/m04_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m04_back_dark.png",
+    "light": "hair/m04_back_light.png"
+   }
+  },
+  {
+   "id": "m05",
+   "front": {
+    "dark": "hair/m05_front_dark.png",
+    "light": "hair/m05_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m05_back_dark.png",
+    "light": "hair/m05_back_light.png"
+   }
+  },
+  {
+   "id": "m06",
+   "front": {
+    "dark": "hair/m06_front_dark.png",
+    "light": "hair/m06_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m06_back_dark.png",
+    "light": "hair/m06_back_light.png"
+   }
+  },
+  {
+   "id": "m07",
+   "front": {
+    "dark": "hair/m07_front_dark.png",
+    "light": "hair/m07_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m07_back_dark.png",
+    "light": "hair/m07_back_light.png"
+   }
+  },
+  {
+   "id": "m08",
+   "front": {
+    "dark": "hair/m08_front_dark.png",
+    "light": "hair/m08_front_light.png"
+   }
+  },
+  {
+   "id": "m09",
+   "front": {
+    "dark": "hair/m09_front_dark.png",
+    "light": "hair/m09_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m09_back_dark.png",
+    "light": "hair/m09_back_light.png"
+   }
+  },
+  {
+   "id": "m10",
+   "front": {
+    "dark": "hair/m10_front_dark.png",
+    "light": "hair/m10_front_light.png"
+   }
+  },
+  {
+   "id": "m11",
+   "front": {
+    "dark": "hair/m11_front_dark.png",
+    "light": "hair/m11_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m11_back_dark.png",
+    "light": "hair/m11_back_light.png"
+   }
+  },
+  {
+   "id": "m12",
+   "front": {
+    "dark": "hair/m12_front_dark.png",
+    "light": "hair/m12_front_light.png"
+   }
+  },
+  {
+   "id": "m13",
+   "front": {
+    "dark": "hair/m13_front_dark.png",
+    "light": "hair/m13_front_light.png"
+   },
+   "back": {
+    "dark": "hair/m13_back_dark.png",
+    "light": "hair/m13_back_light.png"
+   }
+  },
+  {
+   "id": "m14",
+   "front": {
+    "dark": "hair/m14_front_dark.png",
+    "light": "hair/m14_front_light.png"
+   }
+  }
+ ],
+ "outfits": {
+  "f": [
+   {
+    "id": "f01",
+    "label": "便装 1",
+    "tint": "outfit/f01_tint.png",
+    "fixed": "outfit/f01_fixed.png"
+   },
+   {
+    "id": "f02",
+    "label": "便装 2",
+    "tint": "outfit/f02_tint.png",
+    "fixed": "outfit/f02_fixed.png"
+   },
+   {
+    "id": "f03",
+    "label": "水手服",
+    "tint": "outfit/f03_tint.png",
+    "fixed": "outfit/f03_fixed.png"
+   },
+   {
+    "id": "f04",
+    "label": "水手服 · 夏",
+    "tint": "outfit/f04_tint.png",
+    "fixed": "outfit/f04_fixed.png"
+   },
+   {
+    "id": "f05",
+    "label": "水手服 · 领巾",
+    "tint": "outfit/f05_tint.png",
+    "fixed": "outfit/f05_fixed.png"
+   },
+   {
+    "id": "f06",
+    "label": "西装校服",
+    "tint": "outfit/f06_tint.png",
+    "fixed": "outfit/f06_fixed.png"
+   },
+   {
+    "id": "f07",
+    "label": "西装校服 · 夏",
+    "tint": "outfit/f07_tint.png",
+    "fixed": "outfit/f07_fixed.png"
+   },
+   {
+    "id": "f08",
+    "label": "西装校服 · 领巾",
+    "tint": "outfit/f08_tint.png",
+    "fixed": "outfit/f08_fixed.png"
+   },
+   {
+    "id": "f09",
+    "label": "西装",
+    "tint": "outfit/f09_tint.png"
+   },
+   {
+    "id": "f10",
+    "label": "西装 · 衬衫",
+    "tint": "outfit/f10_tint.png"
+   },
+   {
+    "id": "f11",
+    "label": "套装",
+    "tint": "outfit/f11_tint.png"
+   },
+   {
+    "id": "f12",
+    "label": "套装 · 衬衫",
+    "tint": "outfit/f12_tint.png"
+   }
+  ],
+  "m": [
+   {
+    "id": "m01",
+    "label": "便装 1",
+    "tint": "outfit/m01_tint.png",
+    "fixed": "outfit/m01_fixed.png"
+   },
+   {
+    "id": "m02",
+    "label": "便装 2",
+    "tint": "outfit/m02_tint.png",
+    "fixed": "outfit/m02_fixed.png"
+   },
+   {
+    "id": "m03",
+    "label": "立领",
+    "tint": "outfit/m03_tint.png",
+    "fixed": "outfit/m03_fixed.png"
+   },
+   {
+    "id": "m04",
+    "label": "立领 · 白",
+    "tint": "outfit/m04_tint.png",
+    "fixed": "outfit/m04_fixed.png"
+   },
+   {
+    "id": "m05",
+    "label": "立领 · 敞开",
+    "tint": "outfit/m05_tint.png",
+    "fixed": "outfit/m05_fixed.png"
+   },
+   {
+    "id": "m06",
+    "label": "衬衫",
+    "tint": "outfit/m06_tint.png"
+   },
+   {
+    "id": "m07",
+    "label": "衬衫 · 白",
+    "tint": "outfit/m07_tint.png"
+   },
+   {
+    "id": "m08",
+    "label": "衬衫 · 浅",
+    "tint": "outfit/m08_tint.png",
+    "fixed": "outfit/m08_fixed.png"
+   },
+   {
+    "id": "m09",
+    "label": "西装",
+    "tint": "outfit/m09_tint.png",
+    "fixed": "outfit/m09_fixed.png"
+   },
+   {
+    "id": "m10",
+    "label": "西装 · 衬衫",
+    "tint": "outfit/m10_tint.png",
+    "fixed": "outfit/m10_fixed.png"
+   },
+   {
+    "id": "m11",
+    "label": "西装 · 领带",
+    "tint": "outfit/m11_tint.png",
+    "fixed": "outfit/m11_fixed.png"
+   },
+   {
+    "id": "m12",
+    "label": "西装 · 领带衬衫",
+    "tint": "outfit/m12_tint.png",
+    "fixed": "outfit/m12_fixed.png"
+   }
+  ]
+ },
+ "glasses": [
+  {
+   "id": "g1",
+   "file": "glasses/g1.png"
+  },
+  {
+   "id": "g2",
+   "file": "glasses/g2.png"
+  },
+  {
+   "id": "g3",
+   "file": "glasses/g3.png"
+  },
+  {
+   "id": "g4",
+   "file": "glasses/g4.png"
+  },
+  {
+   "id": "g5",
+   "file": "glasses/g5.png"
+  },
+  {
+   "id": "g6",
+   "file": "glasses/g6.png"
+  },
+  {
+   "id": "g7",
+   "file": "glasses/g7.png"
+  }
+ ],
+ "emotes": {
+  "talk": "emote/talk.png",
+  "exclaim": "emote/exclaim.png",
+  "question": "emote/question.png",
+  "music": "emote/music.png",
+  "star": "emote/star.png",
+  "sparkle": "emote/sparkle.png",
+  "heart": "emote/heart.png",
+  "blush": "emote/blush.png",
+  "angry": "emote/angry.png",
+  "cry": "emote/cry.png",
+  "think": "emote/think.png",
+  "swirl": "emote/swirl.png",
+  "sleep": "emote/sleep.png",
+  "shock": "emote/shock.png",
+  "sweat": "emote/sweat.png",
+  "idea": "emote/idea.png",
+  "agree": "emote/agree.png"
+ }
+}

@@ -52,7 +52,7 @@ jobs:
       - run: uv sync --project anima-server --locked --extra dev
       - run: uv run --locked --extra dev ruff check .
         working-directory: anima-server
-      - run: uv run --project anima-server --locked --extra dev ruff check --config anima-server/pyproject.toml tools/build_desktop.py tools/setup_godot.py tools/desktop_launcher.py tools/tests/test_desktop_launcher.py tools/tests/test_setup_godot.py tools/tests/test_build_desktop.py
+      - run: uv run --project anima-server --locked --extra dev ruff check --config anima-server/pyproject.toml tools/build_desktop.py tools/setup_godot.py tools/desktop_launcher.py tools/tests/test_desktop_launcher.py tools/tests/test_setup_godot.py tools/tests/test_build_desktop.py tools/build_installers.py tools/tests/test_build_installers.py
       - run: uv run --project anima-server --locked --extra dev pytest -q anima-server/tests
       - run: uv run --project anima-server --locked --extra dev python -m unittest discover -s tools/tests -v
 
@@ -92,11 +92,29 @@ jobs:
           VERSION: ${{ needs.validate.outputs.version }}
         shell: bash
         run: uv run --project anima-server --locked --with pyinstaller==6.20.0 python tools/build_desktop.py --godot "$GODOT" --target "$TARGET" --version "$VERSION"
+      - name: Prepare NSIS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          if (-not (Test-Path $compiler)) {
+            choco install nsis --version=3.11 --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
+          }
+          if (-not (Test-Path $compiler)) { throw 'makensis.exe not found' }
+          "MAKENSIS=$compiler" >> $env:GITHUB_ENV
+          & $compiler /VERSION
+      - name: Build and installation-test native installer
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        shell: bash
+        run: uv run --project anima-server --locked python tools/build_installers.py --target "$TARGET" --version "$VERSION" --package ".build/$TARGET/Anima-$VERSION-$TARGET"
       - name: Upload downloadable packages
         uses: actions/upload-artifact@v4
         with:
           name: Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}
-          path: dist/Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}.zip*
+          path: dist/Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}*
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -134,6 +152,6 @@ jobs:
             python -c 'import json; assert json.load(open("release.json"))["isDraft"], "Release is already published; refusing to overwrite assets"'
           else
             gh release create "$TAG" --verify-tag --draft --title "Anima $TAG" \
-              --notes 'Windows x64、macOS Apple Silicon / Intel 独立桌面包，内含 Godot 和 Python 后端。无需安装开发环境。未使用 Windows 商业代码签名或 Apple Developer ID 公证，首次打开可能出现系统安全提示。解压后请阅读 README.md；模型 API 需在设置中自行配置。'
+              --notes 'Windows x64 安装向导（-setup.exe）、macOS Apple Silicon / Intel 安装镜像（.dmg），另保留 ZIP 便携版，均附 SHA-256。内含 Godot 和 Python 后端，无需安装开发环境。Windows 双击安装；Mac 打开 DMG，将 Anima 拖到 Applications。未使用 Windows 商业代码签名或 Apple Developer ID 公证，首次打开可能出现系统安全提示；模型 API 需在设置中自行配置。'
           fi
           gh release upload "$TAG" packages/* --clobber

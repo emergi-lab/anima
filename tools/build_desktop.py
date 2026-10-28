@@ -25,9 +25,20 @@ TARGETS = {
 }
 
 
-def run(*args: str | Path, cwd: Path = ROOT, timeout: int = 1200) -> None:
+def run(*args: str | Path, cwd: Path = ROOT, timeout: int = 1200,
+        check_godot_errors: bool = False) -> None:
     print("+", " ".join(map(str, args)), flush=True)
-    subprocess.run(list(map(str, args)), cwd=cwd, check=True, timeout=timeout)
+    result = subprocess.run(list(map(str, args)), cwd=cwd, check=False, timeout=timeout,
+                            capture_output=check_godot_errors, text=check_godot_errors,
+                            encoding="utf-8" if check_godot_errors else None,
+                            errors="replace" if check_godot_errors else None)
+    if check_godot_errors:
+        print(result.stdout, flush=True)
+        print(result.stderr, flush=True)
+    result.check_returncode()
+    # Godot can report a GDScript runtime failure and still exit successfully.
+    if check_godot_errors and "ERROR:" in result.stdout + result.stderr:
+        raise RuntimeError("Godot script reported an error despite a successful exit code")
 
 
 def stage_project(destination: Path) -> None:
@@ -59,9 +70,11 @@ def stage_project(destination: Path) -> None:
 def export_client(godot: Path, project: Path, destination: Path, target: str) -> Path:
     run(godot, "--headless", "--path", project, "--editor", "--import")
     run(godot, "--headless", "--path", project, "--script",
-        ROOT / "anima-pet/tests/font_fallback_smoke.gd", timeout=60)
+        ROOT / "anima-pet/tests/font_fallback_smoke.gd", timeout=60, check_godot_errors=True)
     run(godot, "--headless", "--path", project, "--script",
-        ROOT / "anima-pet/tests/settings_defaults_smoke.gd", timeout=60)
+        ROOT / "anima-pet/tests/settings_defaults_smoke.gd", timeout=60, check_godot_errors=True)
+    run(godot, "--headless", "--path", project, "--script",
+        ROOT / "anima-pet/tests/persona_defaults_smoke.gd", timeout=60, check_godot_errors=True)
     if target == "windows-x64":
         destination.mkdir(parents=True)
         client = destination / "Anima.exe"

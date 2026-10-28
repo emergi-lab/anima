@@ -60,6 +60,7 @@ var _proposals: Array = []  # its ReviewedEntry list
 var _materials: Array = []  # [{name, text}] to add when the evolution starts
 var _poll := 0.0
 var _busy := false
+var _reload_generation := 0
 
 var _title: Label
 var _version_label: Label
@@ -182,8 +183,12 @@ func _base() -> String:
 func _call(path: String, method := HTTPClient.METHOD_GET, body: Variant = null,
 		timeout := 120.0) -> Dictionary:
 	_busy = true
+	var persona_id: String = app.persona_id
+	var generation := _reload_generation
 	var r: Dictionary = await app.api.request_json(path, method, body, timeout)
 	_busy = false
+	if persona_id != app.persona_id or generation != _reload_generation:
+		return {"ok": false, "stale": true}  # never repaint a newly selected/cleared persona
 	if not r.ok and app.model_trouble(r):
 		_say(app.model_line(r), true)
 		app.remind_model(self, r)
@@ -196,15 +201,26 @@ func _say(text: String, error := false) -> void:
 	_status.add_theme_color_override("font_color", UI.C_ERROR if error else UI.C_MUTED)
 
 func reload() -> void:
+	_reload_generation += 1
+	var generation := _reload_generation
+	# Check cached selections against this backend before requesting persona-specific data.
+	if not app.persona_id.is_empty():
+		await app.refresh_personas()
+		if generation != _reload_generation:
+			return
 	_refresh_portrait()
+	_title.text = "%s的人格" % app.persona_name
 	if app.persona_id.is_empty():
-		_title.text = "人格"
+		_clear_persona()
 		_say("还没有人格。先在蒸馏工作台蒸馏并导入一个。")
 		return
-	_title.text = "%s的人格" % app.persona_name
 	_say("读取中…")
 	var h := await _call(_base() + "/history")
 	if not h.ok:
+		return
+	if not (h.data is Array) or h.data.is_empty():
+		_clear_persona()
+		_say("这个人格还没有可显示的版本。")
 		return
 	_history = h.data
 	var v := await _call(_base() + "/versions/" + str(_history[0].version_id))
@@ -224,6 +240,25 @@ func reload() -> void:
 		_fill_layer(layer)
 	_fill_history()
 	await _load_preview()
+
+func _clear_persona() -> void:
+	_version = {}
+	_history = []
+	_changed_in.clear()
+	_preview = {}
+	_evo = {}
+	_refl = {}
+	_refl_preview = {}
+	_proposals = []
+	_materials = []
+	_material = false
+	_version_label.text = ""
+	for box in _layers.values():
+		_clear(box)
+	_clear(_history_box)
+	_clear(_evolve_box)
+	_confirm.hide()
+	_files.hide()
 
 func _refresh_portrait() -> void:
 	_portrait.seed_text = app.persona_id

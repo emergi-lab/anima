@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import plistlib
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +18,15 @@ SPEC.loader.exec_module(build)
 
 
 class BuildTests(unittest.TestCase):
+    def test_script_errors_fail_even_when_godot_exits_zero(self):
+        result = subprocess.CompletedProcess(["godot"], 0, "test says PASS", "SCRIPT ERROR: bad")
+        with (
+            patch.object(build.subprocess, "run", return_value=result),
+            patch("builtins.print"),
+            self.assertRaisesRegex(RuntimeError, "Godot script reported"),
+        ):
+            build.run("godot", check_godot_errors=True)
+
     def test_staging_allowlist_removes_editor_and_local_files(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -448,9 +448,9 @@ func _build_setup() -> HBoxContainer:
 	grid.columns = 2
 	grid.add_theme_constant_override("v_separation", 8)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_name = _field(grid, "名字", "素材中最常用的称呼，如：悟空")
+	_name = _field(grid, "名字", "素材中最常用的角色称呼")
 	_name.text_changed.connect(func(_t: String) -> void: _refresh_avatars())
-	_aliases = _field(grid, "别名", "用逗号或顿号分隔，如：美猴王、大圣、行者")
+	_aliases = _field(grid, "别名", "角色的其他称呼，用逗号或顿号分隔")
 	_persona_id = _field(grid, "人格 ID", "英文、数字、- _ . :")
 	_persona_id.text_changed.connect(func(_t: String) -> void: _refresh_avatars())
 	form.add_child(grid)

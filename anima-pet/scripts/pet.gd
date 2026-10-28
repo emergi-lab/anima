@@ -82,8 +82,13 @@ func _ready() -> void:
 		_chat.bubble.dismiss())
 	App.persona_switched.connect(func() -> void:
 		react("sparkle")
-		if _chat.window.visible:
+		if App.persona_id.is_empty():
+			_chat.window.hide()
+		elif _chat.window.visible:
 			_chat.window.reload())
+	App.personas_changed.connect(func() -> void:
+		_apply_settings()
+		_fill_switch_menu())
 	App.refresh_personas()
 	App.persona_changed.connect(func(line: String) -> void: _chat.announce(line, "sparkle"))
 	App.model_ready_changed.connect(func() -> void:
@@ -123,7 +128,7 @@ func _on_evolution_finished(d: Dictionary) -> void:
 func _apply_look() -> void:
 	_avatar.seed_text = App.persona_id
 	_avatar.spec = App.look()
-	_avatar.nickname = App.persona_name if not App.persona_name.is_empty() else "Anima"
+	_avatar.nickname = App.persona_name
 
 func _apply_settings() -> void:
 	_avatar.show_name = App.show_name
@@ -132,7 +137,7 @@ func _apply_settings() -> void:
 	for id in [Menu.TALK, Menu.LOG, Menu.PERSONA]:
 		_menu.set_item_disabled(_menu.get_item_index(id), none)
 	_menu.set_item_text(_menu.get_item_index(Menu.TALK),
-		"对话（先在蒸馏工作台导入人格）" if none else "和%s说话…" % App.persona_name)
+		"和%s说话%s" % [App.persona_name, "（先导入人格）" if none else "…"])
 	if not App.wander and _mode == Mode.WALK:
 		_idle()
 	elif App.wander and not _wandered:

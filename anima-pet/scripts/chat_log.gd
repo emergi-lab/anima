@@ -101,15 +101,28 @@ func _build_memories() -> Control:
 # ---- data -----------------------------------------------------------------------------------
 
 func reload() -> void:
+	# Saved selections can belong to a different backend/database after reinstalling.
+	var selected: String = app.persona_id
+	if not selected.is_empty():
+		await app.refresh_personas()
+		if selected != app.persona_id:
+			return  # set_persona has already reloaded the visible window.
+	_title.text = "和%s的聊天" % app.persona_name
 	if app.persona_id.is_empty():
 		_status.text = "还没有人格。先在蒸馏工作台导入一个。"
 		_data = []
 		_fill()
+		for child in _memories.get_children():
+			if child != _memory_empty:
+				_memories.remove_child(child)
+				child.queue_free()
+		_memory_empty.hide()
 		return
-	_title.text = "和%s的聊天" % app.persona_name
 	_status.text = "读取中…"
 	var r: Dictionary = await app.api.request_json("/v1/personas/%s/chats?limit=%d" % [
-		app.persona_id.uri_encode(), _limit])
+		selected.uri_encode(), _limit])
+	if selected != app.persona_id:
+		return
 	if not r.ok:
 		_status.text = str(r.error)
 		return
@@ -191,7 +204,10 @@ func _fill_timeline() -> void:
 # ---- memories -------------------------------------------------------------------------------
 
 func _load_memories() -> void:
-	var r: Dictionary = await app.api.request_json("/v1/personas/%s/memories?limit=50" % app.persona_id.uri_encode())
+	var selected: String = app.persona_id
+	var r: Dictionary = await app.api.request_json("/v1/personas/%s/memories?limit=50" % selected.uri_encode())
+	if selected != app.persona_id:
+		return
 	for c in _memories.get_children():
 		if c != _memory_empty:
 			c.queue_free()

@@ -27,6 +27,7 @@ signal model_ready_changed
 const NO_MODEL := "还没有填模型 API，我没法思考。"
 
 const SETTINGS := "user://anima.cfg"
+const DEFAULT_PERSONA_NAME := "anima"
 ## Interface sizes offered in the pet menu, on top of the screen's own HiDPI scale.
 const ZOOMS := [[1.0, "小"], [1.25, "标准"], [1.5, "大"], [1.75, "特大"]]
 
@@ -34,7 +35,7 @@ var api: Backend
 var theme: Theme
 ## Persona the pet speaks as; set when a distillation is committed.
 var persona_id := ""
-var persona_name := ""
+var persona_name := DEFAULT_PERSONA_NAME
 var wander := true
 var show_name := false
 var zoom := 1.25
@@ -51,6 +52,7 @@ var _settings: SettingsWindow
 ## The owner's personas from the server, most recently chatted first, and the limit.
 var personas: Array = []
 var max_personas := 5
+var _roster_request := 0  # ignore older responses and selection changes during a refresh
 ## The server has a key for the model (or runs the offline fake); unknown until `check_model`.
 var model_ready := true
 var _icons := {}  # persona id + look → menu icon
@@ -130,7 +132,9 @@ func use_settings(path: String) -> void:
 func _load_settings() -> void:
 	_cfg.load(_settings_path)
 	persona_id = str(_cfg.get_value("pet", "persona_id", ""))
-	persona_name = str(_cfg.get_value("pet", "persona_name", ""))
+	persona_name = str(_cfg.get_value("pet", "persona_name", DEFAULT_PERSONA_NAME))
+	if persona_id.is_empty() or persona_name.strip_edges().is_empty():
+		persona_name = DEFAULT_PERSONA_NAME
 	wander = bool(_cfg.get_value("pet", "wander", true))
 	show_name = bool(_cfg.get_value("pet", "show_name", false))
 	zoom = float(_cfg.get_value("pet", "zoom", 1.25))
@@ -140,11 +144,14 @@ func _save() -> void:
 	_cfg.save(_settings_path)
 
 func set_persona(id: String, display_name: String) -> void:
-	var changed := id != persona_id
+	var label := display_name.strip_edges()
+	if id.is_empty() or label.is_empty():
+		label = DEFAULT_PERSONA_NAME
+	var changed := id != persona_id or label != persona_name
 	persona_id = id
-	persona_name = display_name
+	persona_name = label
 	_cfg.set_value("pet", "persona_id", id)
-	_cfg.set_value("pet", "persona_name", display_name)
+	_cfg.set_value("pet", "persona_name", label)
 	_save()
 	look_changed.emit()
 	if changed:  # open windows follow the persona the pet now is
@@ -167,12 +174,36 @@ func switch_persona(id: String, display_name: String) -> void:
 	persona_switched.emit()
 	refresh_personas()
 
-func refresh_personas() -> void:
+func refresh_personas(reconcile_active := true) -> void:
+	_roster_request += 1
+	var request := _roster_request
+	var selected := persona_id
 	var r: Dictionary = await api.request_json("/v1/personas")
-	if not r.ok:
+	if not r.ok or request != _roster_request:
+		return  # A failed request is not evidence that a saved persona was deleted.
+	var data: Variant = r.get("data")
+	if not (data is Dictionary) or not (data.get("items") is Array):
 		return
-	personas = r.data.items
-	max_personas = int(r.data.max) if r.data.max != null else 0
+	for person in data.items:
+		if not (person is Dictionary) or not (person.get("persona_id") is String):
+			return
+	personas = data.items
+	max_personas = int(data.get("max")) if data.get("max") != null else 0
+	if reconcile_active and persona_id == selected and not selected.is_empty():
+		var found := false
+		for person in personas:
+			if str(person.persona_id) == selected:
+				found = true
+				var label := str(person.get("name", persona_name)).strip_edges()
+				if not label.is_empty() and label != persona_name:
+					set_persona(selected, label)
+				break
+		if not found:
+			# Godot user:// may contain a selection from a different backend/database.
+			# Only clear the selection; never delete real personas, looks or model settings.
+			persona_switching.emit()
+			set_persona("", DEFAULT_PERSONA_NAME)
+			persona_switched.emit()
 	personas_changed.emit()
 
 ## Delete a persona for good; if it is the current one, the pet becomes the next one (or none).
@@ -191,7 +222,9 @@ func delete_persona(id: String, all_data := false) -> Dictionary:
 	for icon_key in _icons.keys():
 		if str(icon_key).begins_with(id + "|"):
 			_icons.erase(icon_key)
-	await refresh_personas()
+	# Preserve explicit delete's existing choice of the next persona.
+	personas = personas.filter(func(p): return str(p.persona_id) != id)
+	await refresh_personas(false)
 	if id == persona_id:
 		persona_switching.emit()
 		var next: Dictionary = personas[0] if not personas.is_empty() else {}

@@ -65,13 +65,23 @@ static var _body: Font
 static var _bold: Font
 static var _pixel: Font
 
-## Noto Sans SC subset (GB2312 + mock data); system CJK fonts as fallback for rare names.
+## Noto Sans SC subset; macOS uses the bundled Fusion font for rare names.
+## Some macOS system font collections cannot be read by FreeType in exported apps.
 static func body_font() -> Font:
 	if _body == null:
 		var f: FontFile = load("res://assets/fonts/NotoSansSC-Regular.subset.woff2")
-		var sys := SystemFont.new()
-		sys.font_names = PackedStringArray(["PingFang SC", "Microsoft YaHei UI", "Noto Sans CJK SC", "sans-serif"])
-		f.fallbacks = [sys]
+		if OS.get_name() == "macOS":
+			# Duplicate: pixel_font() adds body_font() as its fallback; sharing that
+			# same resource here would create a cyclic font fallback graph.
+			var bundled := load("res://assets/fonts/fusion-pixel-12px-zh_hans.woff2").duplicate() as FontFile
+			bundled.fallbacks = []
+			bundled.allow_system_fallback = false
+			f.allow_system_fallback = false
+			f.fallbacks = [bundled]
+		else:
+			var sys := SystemFont.new()
+			sys.font_names = PackedStringArray(["PingFang SC", "Microsoft YaHei UI", "Noto Sans CJK SC", "sans-serif"])
+			f.fallbacks = [sys]
 		_body = f
 	return _body
 
@@ -91,6 +101,8 @@ static func pixel_font() -> Font:
 		f.antialiasing = TextServer.FONT_ANTIALIASING_NONE
 		f.hinting = TextServer.HINTING_NONE
 		f.subpixel_positioning = TextServer.SUBPIXEL_POSITIONING_DISABLED
+		if OS.get_name() == "macOS":
+			f.allow_system_fallback = false
 		f.fallbacks = [body_font()]
 		_pixel = f
 	return _pixel

@@ -64,7 +64,7 @@ class BuildTests(unittest.TestCase):
             presets.write_text('binary_format/architecture="universal"')
             destination = root / "client"
 
-            def fake_run(*args):
+            def fake_run(*args, **kwargs):
                 if "--export-release" in args:
                     app = Path(args[-1])
                     (app / "Contents/MacOS").mkdir(parents=True)

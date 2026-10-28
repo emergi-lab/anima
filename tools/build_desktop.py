@@ -59,6 +59,8 @@ def stage_project(destination: Path) -> None:
 
 def export_client(godot: Path, project: Path, destination: Path, target: str) -> Path:
     run(godot, "--headless", "--path", project, "--editor", "--import")
+    run(godot, "--headless", "--path", project, "--script",
+        ROOT / "anima-pet/tests/font_fallback_smoke.gd", timeout=60)
     if target == "windows-x64":
         destination.mkdir(parents=True)
         client = destination / "Anima.exe"

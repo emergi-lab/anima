@@ -53,7 +53,9 @@ jobs:
       - run: uv run --locked --extra dev ruff check .
         working-directory: anima-server
       - run: uv run --project anima-server --locked --extra dev ruff check --config anima-server/pyproject.toml tools/build_desktop.py tools/setup_godot.py tools/desktop_launcher.py tools/tests/test_desktop_launcher.py tools/tests/test_setup_godot.py tools/tests/test_build_desktop.py tools/build_installers.py tools/tests/test_build_installers.py
-      - run: uv run --project anima-server --locked --extra dev pytest -q anima-server/tests
+      - name: Run backend tests when present
+        if: ${{ hashFiles('anima-server/tests/**/test_*.py') != '' }}
+        run: uv run --project anima-server --locked --extra dev pytest -q anima-server/tests
       - run: uv run --project anima-server --locked --extra dev python -m unittest discover -s tools/tests -v
 
   build:

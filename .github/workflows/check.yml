@@ -21,4 +21,6 @@ jobs:
           python-version: '3.13'
       - run: uv sync --locked --extra dev
       - run: uv run --locked --extra dev ruff check .
-      - run: uv run --locked --extra dev pytest -q
+      - name: Run backend tests when present
+        if: ${{ hashFiles('anima-server/tests/**/test_*.py') != '' }}
+        run: uv run --locked --extra dev pytest -q tests

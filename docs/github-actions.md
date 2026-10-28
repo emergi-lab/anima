@@ -2,7 +2,7 @@
 
 当前仅发布 **Windows x64 setup EXE、Mac Apple Silicon / Intel DMG** 和对应 SHA-256，不再生成或上传便携 ZIP。用户不需要安装 Python、uv 或 Godot。
 
-2026-10-28 已重新正式发布 [v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)（源码 `8fd4994`）：[标签构建 40676208344](https://github.com/emergi-lab/anima/actions/runs/40676208344) 全部成功，73 项后端 / 58 项工具测试、三平台安装及默认值自检通过；6 个附件的公开下载与摘要验证通过。
+2026-10-28 再次准备发布 `v0.0.1`：远端旧标签及 Release 已不存在，基于当前 `main` 重新构建。提交 `df9d8d6` 已删除后端测试目录；两个工作流现在仅在存在后端测试文件时运行 pytest，恢复测试文件后自动重新启用。Ruff、发布内容检查、工具测试及三平台构建和安装验证继续执行。发布完成后在此记录新的构建和附件验证结果。
 
 ## 仓库配置
 

@@ -83,7 +83,7 @@ def create_app(settings: Settings | None = None, model: PersonaModel | None = No
             await model.close()
         await engine.dispose()
 
-    app = FastAPI(title="anima-server", version="0.1.0", lifespan=lifespan,
+    app = FastAPI(title="anima-server", version="0.0.1", lifespan=lifespan,
                   description="EMERGI-PersonaOS persona service. Contract: docs/接口契约.md")
     app.state.aftercare = aftercare
     app.state.distiller = distiller

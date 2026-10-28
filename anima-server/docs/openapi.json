@@ -3443,7 +3443,7 @@
  "info": {
   "description": "EMERGI-PersonaOS persona service. Contract: docs/接口契约.md",
   "title": "anima-server",
-  "version": "0.1.0"
+  "version": "0.0.1"
  },
  "openapi": "3.1.0",
  "paths": {

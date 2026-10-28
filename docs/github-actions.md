@@ -24,8 +24,8 @@
 示例（不要重复创建已有标签）：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.0.1
+git push origin v0.0.1
 ```
 
 Actions 产物保留 30 天。Release 草稿发布后的附件长期保留；仅有写权限的维护者能看到草稿。重跑标签工作流可更新草稿附件，但**不会覆盖已正式发布的 Release**；需修复时递增版本并创建新标签。
@@ -50,7 +50,7 @@ Actions 产物保留 30 天。Release 草稿发布后的附件长期保留；仅
 uv sync --project anima-server --python 3.13 --locked --extra dev
 uv run --project anima-server --locked python tools/setup_godot.py --version 4.7.2
 # 使用上一步输出的 Godot 可执行文件绝对路径
-uv run --project anima-server --locked --with pyinstaller==6.20.0 python tools/build_desktop.py --godot /path/to/godot --target windows-x64 --version 0.1.0
+uv run --project anima-server --locked --with pyinstaller==6.20.0 python tools/build_desktop.py --godot /path/to/godot --target windows-x64 --version 0.0.1
 ```
 
 Mac 的 `--target` 改为 `macos-arm64` 或 `macos-x64`。首次下载导出模板约 1.3 GB，请预留带宽和磁盘空间。中间文件在 `.build/`，最终文件在 `dist/`，均已 Git 忽略。

@@ -1,6 +1,6 @@
 [project]
 name = "anima-server"
-version = "0.1.0"
+version = "0.0.1"
 description = "Anima desktop-pet backend: persona distillation plus the EMERGI-PersonaOS lifecycle"
 readme = "README.md"
 requires-python = ">=3.11"

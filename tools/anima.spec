@@ -1,6 +1,7 @@
 # Build from anima-server's locked uv environment. The caller supplies --distpath.
-# Produces Anima/Anima[.exe] + Anima/_internal (onedir), NOT a macOS BUNDLE.
-# macOS packaging must preserve _internal beside Contents/MacOS/Anima.
+# Windows uses onedir; macOS BUNDLE separates Frameworks/code from Resources/data
+# so codesign does not mistake Python .dist-info metadata for nested code bundles.
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -32,3 +33,9 @@ exe = EXE(
     console=False, disable_windowed_traceback=True, contents_directory="_internal",
 )
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="Anima")
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll, name="Anima.app", bundle_identifier="org.emergi.anima",
+        info_plist={"LSUIElement": True, "NSHighResolutionCapable": True,
+                    "LSMinimumSystemVersion": "13.0"},
+    )

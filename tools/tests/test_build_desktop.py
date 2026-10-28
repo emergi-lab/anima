@@ -84,10 +84,13 @@ class BuildTests(unittest.TestCase):
     def test_macos_bundle_layout_matches_launcher(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            frozen = root / "frozen"
-            frozen.mkdir()
-            (frozen / "Anima").write_text("executable")
-            (frozen / "_internal").mkdir()
+            frozen = root / "frozen/Anima.app"
+            (frozen / "Contents/MacOS").mkdir(parents=True)
+            (frozen / "Contents/MacOS/Anima").write_text("executable")
+            (frozen / "Contents/Frameworks").mkdir()
+            (frozen / "Contents/Resources").mkdir()
+            with (frozen / "Contents/Info.plist").open("wb") as stream:
+                plistlib.dump({"CFBundleIconFile": "icon-windowed.icns"}, stream)
             launcher, resources = build.make_macos_app(frozen, root / "output", "1.2.3")
             self.assertEqual(launcher.name, "Anima")
             self.assertTrue(launcher.is_file())
@@ -97,6 +100,9 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(info["CFBundleExecutable"], launcher.name)
             self.assertEqual(info["CFBundleShortVersionString"], "1.2.3")
             self.assertTrue(info["LSUIElement"])
+            self.assertEqual(info["CFBundleIconFile"], "icon-windowed.icns")
+            self.assertTrue((resources.parent / "Frameworks").is_dir())
+            self.assertFalse((launcher.parent / "_internal").exists())
 
 
 if __name__ == "__main__":

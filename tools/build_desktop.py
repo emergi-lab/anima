@@ -94,6 +94,14 @@ def add_licenses(destination: Path) -> None:
         url = f"https://raw.githubusercontent.com/godotengine/godot/{GODOT_VERSION}-stable/{filename}"
         with urllib.request.urlopen(url, timeout=60) as response:
             (destination / f"Godot-{filename}").write_bytes(response.read())
+    python_license = Path(sys.base_prefix) / "LICENSE.txt"
+    if python_license.is_file():
+        shutil.copy2(python_license, destination / "Python-LICENSE.txt")
+    else:
+        url = ("https://raw.githubusercontent.com/python/cpython/"
+               f"v{platform.python_version()}/LICENSE")
+        with urllib.request.urlopen(url, timeout=60) as response:
+            (destination / "Python-LICENSE.txt").write_bytes(response.read())
     # Include installed Python distribution license texts, not just package names.
     import importlib.metadata
     for distribution in importlib.metadata.distributions():
@@ -111,17 +119,19 @@ def add_licenses(destination: Path) -> None:
 
 def make_macos_app(frozen: Path, output: Path, version: str) -> tuple[Path, Path]:
     app = output / "Anima.app"
+    shutil.copytree(frozen, app, symlinks=True)
     contents = app / "Contents"
-    shutil.copytree(frozen, contents / "MacOS", symlinks=True)
     resources = contents / "Resources"
-    resources.mkdir()
-    info = {
+    resources.mkdir(exist_ok=True)
+    with (contents / "Info.plist").open("rb") as stream:
+        info = plistlib.load(stream)
+    info.update({
         "CFBundleName": "Anima", "CFBundleDisplayName": "Anima",
         "CFBundleIdentifier": "org.emergi.anima", "CFBundleExecutable": "Anima",
         "CFBundlePackageType": "APPL", "CFBundleShortVersionString": version,
         "CFBundleVersion": version, "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True, "LSUIElement": True,
-    }
+    })
     with (contents / "Info.plist").open("wb") as stream:
         plistlib.dump(info, stream)
     return contents / "MacOS/Anima", resources
@@ -174,7 +184,7 @@ def main() -> int:
         shutil.copytree(frozen, application)
         launcher, resources = application / "Anima.exe", application
     else:
-        launcher, resources = make_macos_app(frozen, package, args.version)
+        launcher, resources = make_macos_app(work / "frozen/Anima.app", package, args.version)
     client = export_client(godot, project, resources / "client", args.target)
     add_licenses(resources / "licenses")
     shutil.copy2(ROOT / "docs/desktop-download.md", package / "README.md")

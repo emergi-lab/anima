@@ -54,7 +54,7 @@ func _run() -> void:
 	root.add_child(api)
 	app.api = api
 	_check(app.persona_id.is_empty() and app.persona_name == "anima", "Fresh name is anima")
-	app._cfg.set_value("pet", "persona_name", "孙悟空")
+	app._cfg.set_value("pet", "persona_name", "anima")
 	app._save()
 	app._load_settings()
 	_check(app.persona_name == "anima", "A legacy name without a persona ID loads as anima")
@@ -62,11 +62,11 @@ func _run() -> void:
 	_check(app.persona_name == "anima", "An empty selection never keeps an old name")
 	app.set_option("wander", false)
 	app._cfg.set_value("looks", "other-persona", {"keep": "appearance"})
-	app.set_persona("missing-persona", "孙悟空")
+	app.set_persona("missing-persona", "anima")
 	api.replies = [{"ok": false, "error": "offline"}, {"ok": true, "data": {"items": [{}]}}]
 	await app.refresh_personas()
 	await app.refresh_personas()
-	_check(app.persona_id == "missing-persona" and app.persona_name == "孙悟空",
+	_check(app.persona_id == "missing-persona" and app.persona_name == "anima",
 		"Network failure / malformed roster must not erase a saved selection")
 	await app.refresh_personas()
 	_check(app.persona_id.is_empty() and app.persona_name == "anima", "Confirmed stale selection resets")
@@ -77,10 +77,10 @@ func _run() -> void:
 	_check(not saved.get_value("pet", "wander") and saved.get_value("looks", "other-persona").keep == "appearance",
 		"Repair preserves other settings and looks")
 	_check(api.calls.all(func(c): return c.method == HTTPClient.METHOD_GET), "Repair is read-only on backend")
-	api.people = [{"persona_id": "p-a", "name": "孙悟空"}]
-	app.set_persona("p-a", "孙悟空")
+	api.people = [{"persona_id": "p-a", "name": "anima"}]
+	app.set_persona("p-a", "anima")
 	await app.refresh_personas()
-	_check(app.persona_name == "孙悟空", "A real custom persona is not renamed")
+	_check(app.persona_name == "anima", "A real custom persona is not renamed")
 	# A response started before the user switches must not clear the new selection.
 	api.replies = [{"ok": true, "data": {"items": [], "max": 5}, "delay": 0.04}]
 	app.refresh_personas()
@@ -111,10 +111,10 @@ func _run() -> void:
 		"Menu uses anima without pretending a backend persona exists")
 	pet._chat.input.open_for(app.persona_name)
 	_check(pet._chat.input._line.placeholder_text.contains("anima"), "Default input hint uses anima")
-	api.people = [{"persona_id": "p-a", "name": "孙悟空"}]
-	app.set_persona("p-a", "孙悟空")
+	api.people = [{"persona_id": "p-a", "name": "anima"}]
+	app.set_persona("p-a", "anima")
 	await app.refresh_personas()
-	_check(pet._menu.get_item_text(talk_index).contains("孙悟空"), "Menu keeps a valid persona's name")
+	_check(pet._menu.get_item_text(talk_index).contains("anima"), "Menu keeps a valid persona's name")
 	pet._chat.input.open_for(app.persona_name)
 	pet._chat.window.show()
 	var window := PersonaWindow.new()
@@ -145,7 +145,7 @@ func _run() -> void:
 	# Opening chat history first also reconciles a stale saved selection.
 	window.hide()
 	logs.hide()
-	app.set_persona("missing-persona", "孙悟空")
+	app.set_persona("missing-persona", "anima")
 	logs.show()
 	api.calls.clear()
 	await logs.reload()
@@ -154,14 +154,14 @@ func _run() -> void:
 	_check(api.calls.all(func(c): return c.path == "/v1/personas"), "No chat requests for missing persona")
 	window.show()
 	# Defensive empty-history handling must not index into an empty array.
-	api.people = [{"persona_id": "p-a", "name": "孙悟空"}]
-	app.set_persona("p-a", "孙悟空")
+	api.people = [{"persona_id": "p-a", "name": "anima"}]
+	app.set_persona("p-a", "anima")
 	_check(window._status.text.contains("没有可显示的版本"), "Empty history is a safe empty state")
 	app.set_persona("", "")
 	# A previous persona request finishing late cannot repaint the corrected window.
 	api.history_delay = 0.04
 	api.history_result = {"ok": false, "status": 404, "error": "HTTP 404 old persona"}
-	app.set_persona("p-a", "孙悟空")
+	app.set_persona("p-a", "anima")
 	app.set_persona("", "")
 	await create_timer(0.07).timeout
 	_check(window._title.text == "anima的人格" and not window._status.text.contains("404"),

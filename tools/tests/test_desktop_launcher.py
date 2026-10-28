@@ -37,7 +37,7 @@ class LauncherTests(unittest.TestCase):
         with patch.object(launcher.sys, "executable", executable), \
                 patch.object(launcher.sys, "platform", "darwin"):
             expected = (Path("Anima.app/Contents/Resources/client/AnimaClient.app")
-                        / "Contents/MacOS/AnimaClient")
+                        / "Contents/MacOS/Anima")
             self.assertEqual(launcher.client_path(), expected.resolve())
         with patch.object(launcher.sys, "executable", str(Path("release/Anima.exe").resolve())), \
                 patch.object(launcher.sys, "platform", "win32"):

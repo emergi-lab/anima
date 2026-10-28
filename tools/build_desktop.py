@@ -64,21 +64,22 @@ def export_client(godot: Path, project: Path, destination: Path, target: str) ->
         client = destination / "Anima.exe"
         run(godot, "--headless", "--path", project, "--export-release", "Windows Desktop", client)
         return client
-    presets = project / "export_presets.cfg"
-    text = presets.read_text(encoding="utf-8").replace(
-        'binary_format/architecture="universal"',
-        f'binary_format/architecture="{TARGETS[target][1]}"',
-    )
-    presets.write_text(text, encoding="utf-8")
+    # Official macos.zip contains universal binaries, not per-architecture templates.
+    # Export universal first, then keep only the runner's native slice before signing.
     destination.mkdir(parents=True)
     app = destination / "AnimaClient.app"
     run(godot, "--headless", "--path", project, "--export-release", "macOS", app)
     with (app / "Contents/Info.plist").open("rb") as stream:
         executable = plistlib.load(stream)["CFBundleExecutable"]
     # The launcher uses this fixed path; do not silently ship a broken bundle if Godot changes it.
-    if executable != "AnimaClient":
+    if executable != "Anima":
         raise RuntimeError(f"Unexpected Godot CFBundleExecutable: {executable}")
-    return app / "Contents/MacOS" / executable
+    binary = app / "Contents/MacOS" / executable
+    thin = binary.with_suffix(".thin")
+    run("lipo", binary, "-thin", TARGETS[target][1], "-output", thin)
+    thin.replace(binary)
+    binary.chmod(0o755)
+    return binary
 
 
 def add_licenses(destination: Path) -> None:
@@ -118,7 +119,7 @@ def make_macos_app(frozen: Path, output: Path, version: str) -> tuple[Path, Path
         "CFBundleName": "Anima", "CFBundleDisplayName": "Anima",
         "CFBundleIdentifier": "org.emergi.anima", "CFBundleExecutable": "Anima",
         "CFBundlePackageType": "APPL", "CFBundleShortVersionString": version,
-        "CFBundleVersion": version, "LSMinimumSystemVersion": "12.0",
+        "CFBundleVersion": version, "LSMinimumSystemVersion": "13.0",
         "NSHighResolutionCapable": True, "LSUIElement": True,
     }
     with (contents / "Info.plist").open("wb") as stream:
@@ -200,6 +201,20 @@ def main() -> int:
         print(result.stderr, flush=True)
         if result.returncode or "SCRIPT ERROR" in result.stderr or "ERROR:" in result.stderr:
             raise RuntimeError("Exported Godot client smoke test failed")
+        # Also verify the real entry point launches both processes with the packaged paths.
+        session_data = Path(temporary) / "session"
+        env["ANIMA_DATA_DIR"] = str(session_data)
+        result = subprocess.run([str(launcher), "--headless", "--quit-after", "120"],
+                                env=env, timeout=180, check=False)
+        failed = result.returncode != 0
+        for log in (session_data / "logs").glob("*.log"):
+            text = log.read_text(encoding="utf-8", errors="replace")
+            if "SCRIPT ERROR" in text or "ERROR:" in text:
+                failed = True
+            if failed:
+                print(text, flush=True)
+        if failed:
+            raise RuntimeError("Packaged launcher/client integration smoke test failed")
     output = ROOT / "dist"
     output.mkdir(exist_ok=True)
     archive = output / f"{package_name}.zip"

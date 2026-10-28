@@ -38,7 +38,7 @@ def client_path() -> Path:
     executable = Path(sys.executable).resolve()
     if sys.platform == "darwin":
         return (executable.parent.parent / "Resources/client/AnimaClient.app"
-                / "Contents/MacOS/AnimaClient")
+                / "Contents/MacOS/Anima")
     return executable.parent / "client/Anima.exe"
 
 

@@ -32,10 +32,10 @@ Actions 产物保留 30 天。Release 草稿发布后的附件长期保留；仅
 
 - 原生 runner：`windows-latest`（x64）、`macos-15`（Apple Silicon）、`macos-15-intel`（Intel）。打包器检查 Python 的系统与架构，防止给 Intel 包误装 ARM 后端。
 - Python 3.13 + `uv.lock` 锁定后端依赖；PyInstaller 6.20.0 冻结启动器和后端，用户无需开发环境。
-- Godot 4.7.2 标准版（非 .NET），官方编辑器与导出模板均验证官方 SHA-512。
+- Godot 4.7.2 标准版（非 .NET），官方编辑器与导出模板均验证官方 SHA-512。Mac 先使用官方 universal 模板导出，再以 lipo 提取原生架构，并重新签名；最低 macOS 13。
 - 仅从 Git 跟踪文件白名单建立客户端 staging，移除开发用 Godot AI 插件/autoload，不打包 `.godot`、测试、`.env` 或用户数据库。PIPOYA manifest、字体、素材及许可包含在内。
 - 启动器使用随机回环端口与随机鉴权令牌，不复用或停止源码版的 8030 服务；工作目录和持久化数据都在用户数据目录。
-- 在上传前运行冻结后端的隔离健康/鉴权测试和导出客户端的无界面加载测试；Mac 验证 ad-hoc 签名。CI 不验证真实 GPU 窗口、透明度、Finder/SmartScreen、模型供应商可用性。
+- 在上传前运行冻结后端的隔离健康/鉴权测试、导出客户端的无界面加载测试，以及启动器实际拉起两进程的联动自检；Mac 验证 ad-hoc 签名。CI 不验证真实 GPU 窗口、透明度、Finder/SmartScreen、模型供应商可用性。
 - 顶层 `LICENSE` / `NOTICE.md`、Godot 版权、字体/PIPOYA 许可及 Python 分发包提供的许可文件随包附带。
 
 普通 `.github/workflows/check.yml` 保留发布安全扫描与后端测试，并改为锁定依赖。

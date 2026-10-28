@@ -55,6 +55,32 @@ class BuildTests(unittest.TestCase):
             for name in ("addons", "tests", ".godot", ".env", "data"):
                 self.assertFalse((destination / name).exists())
 
+    def test_macos_exports_universal_template_then_thins_native_binary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            project = root / "project"
+            project.mkdir()
+            presets = project / "export_presets.cfg"
+            presets.write_text('binary_format/architecture="universal"')
+            destination = root / "client"
+
+            def fake_run(*args):
+                if "--export-release" in args:
+                    app = Path(args[-1])
+                    (app / "Contents/MacOS").mkdir(parents=True)
+                    (app / "Contents/MacOS/Anima").write_bytes(b"universal")
+                    with (app / "Contents/Info.plist").open("wb") as stream:
+                        plistlib.dump({"CFBundleExecutable": "Anima"}, stream)
+                elif args[0] == "lipo":
+                    self.assertEqual(args[3], "arm64")
+                    Path(args[-1]).write_bytes(b"native")
+
+            with patch.object(build, "run", side_effect=fake_run):
+                binary = build.export_client(Path("godot"), project, destination, "macos-arm64")
+            self.assertEqual(binary.name, "Anima")
+            self.assertEqual(binary.read_bytes(), b"native")
+            self.assertIn('"universal"', presets.read_text())
+
     def test_macos_bundle_layout_matches_launcher(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

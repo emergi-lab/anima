@@ -1,5 +1,7 @@
 # GitHub Actions：构建 Windows 与 macOS 桌面包
 
+2026-10-28 已在 GitHub 托管 runner 跑通全部三个打包目标（源码 `81e2af5`）：[查看成功运行及下载 Artifacts](https://github.com/emergi-lab/anima/actions/runs/40663376327)。当前无需新增 Secrets 或更改仓库开关即可构建；尚未创建正式 Release，标签发布规则已配置如下。
+
 ## 仓库需要的配置
 
 1. 仓库 **Settings → Actions → General** 中允许 GitHub Actions；若使用 Actions 白名单，允许 `actions/checkout`、`actions/upload-artifact`、`actions/download-artifact`、`astral-sh/setup-uv`。

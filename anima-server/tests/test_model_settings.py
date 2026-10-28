@@ -21,7 +21,8 @@ def test_save_mask_and_swap(make, tmp_path):
                     "key_hint": "…abcd", "source": "saved"} == saved
     assert "sk-test" not in json.dumps(saved)
     path = next(tmp_path.glob("model-*.json"))
-    assert oct(os.stat(path).st_mode & 0o777) == "0o600"
+    if os.name == "posix":  # Windows chmod does not provide POSIX private-file permissions.
+        assert oct(os.stat(path).st_mode & 0o777) == "0o600"
     assert json.loads(path.read_text())["api_key"] == "sk-test-1234567890abcd"
     assert type(client.app.state.model.inner).__name__ == "OpenAIPersonaModel"
     assert client.get("/v1/runtime", headers=AUTH).json()["model"] == "my-model"

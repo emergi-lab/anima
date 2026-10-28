@@ -56,15 +56,18 @@ class Scripted(FakePersonaModel):
         return ModelResult(draft, "scripted", latency_ms=3)
 
 
-def make_client(model=None):
-    settings = Settings(service_tokens=SecretStr("t=anima"), database_url="sqlite+aiosqlite://")
+def make_client(tmp_path, model=None):
+    settings = Settings(_env_file=None, service_tokens=SecretStr("t=anima"),
+                        database_url="sqlite+aiosqlite://",
+                        model_backend="fake", openai_api_key=SecretStr(""),
+                        model_file=str(tmp_path / "model.json"))
     return TestClient(create_app(settings, model=model or FakePersonaModel()))
 
 
 @pytest.fixture
-def setup():
+def setup(tmp_path):
     def _setup(model=None):
-        client = make_client(model)
+        client = make_client(tmp_path, model)
         client.__enter__()
         assert client.post("/v1/personas:import", headers=AUTH,
                            json={"personas": [PERSONA]}).status_code == 200

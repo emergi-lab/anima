@@ -29,14 +29,14 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.11.7'
-          python-version: '3.12'
+          python-version: '3.13'
           enable-cache: true
       - id: version
         name: Validate version
         env:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
-          uv run --python 3.12 --no-project python - <<'PY'
+          uv run --python 3.13 --no-project python - <<'PY'
           import os, re, tomllib
           from pathlib import Path
           version = tomllib.loads(Path('anima-server/pyproject.toml').read_text())['project']['version']
@@ -78,7 +78,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.11.7'
-          python-version: '3.12'
+          python-version: '3.13'
           enable-cache: true
       - name: Install locked backend dependencies
         run: uv sync --project anima-server --locked --no-dev
@@ -100,6 +100,14 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+      - name: Preserve smoke diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.target }}
+          path: .build/${{ matrix.target }}/smoke-logs/
+          if-no-files-found: ignore
+          retention-days: 7
 
   release:
     name: Prepare release draft

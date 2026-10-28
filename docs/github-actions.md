@@ -31,7 +31,7 @@ Actions 产物保留 30 天。Release 草稿发布后的附件长期保留；仅
 ## 实际构建内容
 
 - 原生 runner：`windows-latest`（x64）、`macos-15`（Apple Silicon）、`macos-15-intel`（Intel）。打包器检查 Python 的系统与架构，防止给 Intel 包误装 ARM 后端。
-- Python 3.12 + `uv.lock` 锁定后端依赖；PyInstaller 6.20.0 冻结启动器和后端，用户无需开发环境。
+- Python 3.13 + `uv.lock` 锁定后端依赖；PyInstaller 6.20.0 冻结启动器和后端，用户无需开发环境。
 - Godot 4.7.2 标准版（非 .NET），官方编辑器与导出模板均验证官方 SHA-512。
 - 仅从 Git 跟踪文件白名单建立客户端 staging，移除开发用 Godot AI 插件/autoload，不打包 `.godot`、测试、`.env` 或用户数据库。PIPOYA manifest、字体、素材及许可包含在内。
 - 启动器使用随机回环端口与随机鉴权令牌，不复用或停止源码版的 8030 服务；工作目录和持久化数据都在用户数据目录。
@@ -42,10 +42,10 @@ Actions 产物保留 30 天。Release 草稿发布后的附件长期保留；仅
 
 ## 本地复现
 
-先准备对应系统的 Python 3.12 与 uv，在仓库根目录运行（只可原生构建当前系统/架构）：
+先准备对应系统的独立 CPython 3.13（uv 管理版或 python.org 安装版，不能使用 Anaconda 的虚拟环境）与 uv，在仓库根目录运行（只可原生构建当前系统/架构）：
 
 ```bash
-uv sync --project anima-server --python 3.12 --locked --extra dev
+uv sync --project anima-server --python 3.13 --locked --extra dev
 uv run --project anima-server --locked python tools/setup_godot.py --version 4.7.2
 # 使用上一步输出的 Godot 可执行文件绝对路径
 uv run --project anima-server --locked --with pyinstaller==6.20.0 python tools/build_desktop.py --godot /path/to/godot --target windows-x64 --version 0.1.0

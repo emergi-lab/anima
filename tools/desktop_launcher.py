@@ -320,6 +320,12 @@ def run_server() -> int:
         except Exception as exc:
             # Avoid validation errors dumping environment values (including credentials).
             print(f"Backend startup/runtime failed ({type(exc).__name__}).", file=stream)
+            # Stack locations (without locals) identify missing frozen imports without
+            # dumping settings/validation errors containing credentials.
+            import traceback
+            traceback.print_tb(exc.__traceback__, file=stream)
+            if isinstance(exc, ImportError):
+                print(f"Import failed: {exc}", file=stream)
             return 1
         finally:
             sys.stdout, sys.stderr = old_out, old_err

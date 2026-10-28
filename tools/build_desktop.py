@@ -102,7 +102,8 @@ def add_licenses(destination: Path) -> None:
                    for part in file.parts):
                 source = Path(distribution.locate_file(file))
                 if source.is_file():
-                    dest = destination / "python" / name / Path(*file.parts)
+                    relative = Path(*(part for part in file.parts if part not in ("..", ".")))
+                    dest = destination / "python" / name / relative
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, dest)
 
@@ -125,9 +126,15 @@ def make_macos_app(frozen: Path, output: Path, version: str) -> tuple[Path, Path
     return contents / "MacOS/Anima", resources
 
 
-def smoke_launcher(launcher: Path) -> None:
-    # On Windows a windowed executable has no console; explicitly wait for its exit status.
-    run(launcher, "--smoke-test", timeout=180)
+def smoke_launcher(launcher: Path, logs: Path) -> None:
+    # Windowed Windows executables have no stderr; retain disposable diagnostics explicitly.
+    env = os.environ | {"ANIMA_SMOKE_LOG_DIR": str(logs)}
+    result = subprocess.run([str(launcher), "--smoke-test"], env=env,
+                            timeout=180, check=False)
+    if result.returncode:
+        for log in logs.glob("*.log"):
+            print(log.read_text(encoding="utf-8", errors="replace"), flush=True)
+        raise RuntimeError(f"Frozen backend smoke failed: {result.returncode}")
 
 
 def main() -> int:
@@ -143,6 +150,8 @@ def main() -> int:
     if sys.platform != system or machine != arch:
         parser.error(f"{args.target} needs native {system}/{arch} Python; "
                      f"got {sys.platform}/{machine}")
+    if (Path(sys.base_prefix) / "conda-meta").exists():
+        parser.error("Use standalone CPython (uv managed or python.org), not an Anaconda venv")
     godot = args.godot.resolve()
     reported = subprocess.check_output([str(godot), "--version"], text=True).strip()
     if not reported.startswith(f"{GODOT_VERSION}.stable."):
@@ -177,7 +186,7 @@ def main() -> int:
         # Ad-hoc signing is required on Apple Silicon. This is NOT Developer ID/notarization.
         run("codesign", "--force", "--deep", "--sign", "-", package / "Anima.app")
         run("codesign", "--verify", "--deep", "--strict", package / "Anima.app")
-    smoke_launcher(launcher)
+    smoke_launcher(launcher, work / "smoke-logs")
     # Headless client test checks exported scripts/assets, not actual desktop composition.
     import tempfile
     with tempfile.TemporaryDirectory(prefix="anima-client-smoke-") as temporary:

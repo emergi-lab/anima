@@ -25,7 +25,7 @@ def make(tmp_path):
     def _make(model, backend="fake"):
         db = tmp_path / f"persona-{len(clients)}.db"
         # explicit, so a developer's .env (real key, openai backend) never reaches a test
-        settings = Settings(service_tokens=SecretStr("t=anima"),
+        settings = Settings(_env_file=None, service_tokens=SecretStr("t=anima"),
                             database_url=f"sqlite+aiosqlite:///{db}",
                             model_file=str(tmp_path / f"model-{len(clients)}.json"),
                             model_backend=backend, openai_api_key=SecretStr(""))
@@ -42,5 +42,8 @@ def make(tmp_path):
 
 @pytest.fixture(autouse=True)
 def _private_model_file(tmp_path, monkeypatch):
-    """No test reads or writes the developer's saved model settings (data/model.json)."""
+    """Isolate process settings and keep saved model settings in the test directory."""
+    for name in tuple(os.environ):
+        if name.upper().startswith("PERSONA_"):
+            monkeypatch.delenv(name)
     monkeypatch.setenv("PERSONA_MODEL_FILE", str(tmp_path / "model-env.json"))

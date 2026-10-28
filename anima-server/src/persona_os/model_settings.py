@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from openai import APIStatusError, AsyncOpenAI
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 
 from persona_os.config import Settings
 from persona_os.domain.contract import StrictModel
@@ -50,7 +50,7 @@ class ModelSettingsView(StrictModel):
     model: str
     disable_thinking: bool
     key_set: bool
-    ready: bool  # a key is set, or this is the offline fake used in development
+    ready: bool  # URL, model and key are set, or this is the offline development fake
     key_hint: str  # "…abcd", or "" when no key
     source: Literal["env", "saved"]  # .env / environment, or this settings page
 
@@ -61,6 +61,11 @@ class ModelSettingsUpdate(StrictModel):
     # None keeps the saved key; "" removes it (model calls are then refused as not configured)
     api_key: SecretStr | None = None
     disable_thinking: bool = True
+
+    @field_validator("model", mode="before")
+    @classmethod
+    def strip_model(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
 
 
 class ModelTestResult(StrictModel):
@@ -109,7 +114,7 @@ class ModelSettings:
 
     def ready(self) -> bool:
         s = self.effective()
-        return s.model_backend == "fake" or bool(s.openai_api_key.get_secret_value())
+        return s.model_backend == "fake" or s.model_configured()
 
     async def update(self, body: ModelSettingsUpdate) -> ModelSettingsView:
         async with self._lock:

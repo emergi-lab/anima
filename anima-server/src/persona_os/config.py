@@ -24,12 +24,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///data/anima.db"
     orm_auto_create: bool = True
 
-    # "fake" is an offline stand-in for tests and development only; with "openai" and no key,
+    # "fake" is an offline stand-in for tests and development only; with incomplete settings,
     # everything that needs the model answers 412 model_not_configured.
     model_backend: Literal["openai", "fake"] = "openai"
     openai_api_key: SecretStr = SecretStr("")
-    openai_base_url: str = "https://tokenhub.tencentmaas.com/v1"
-    model: str = "deepseek-v4-flash-0731"
+    openai_base_url: str = ""
+    model: str = ""
     # DeepSeek V4 on TokenHub thinks by default; other OpenAI-compatible services may reject the
     # extra parameter, so the settings page can turn it off.
     disable_thinking: bool = True
@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     # 桌宠聊天：这么久没人说话就结束这段对话，整理成记忆。
     chat_idle_minutes: float = Field(default=10, gt=0, le=1440)
     max_personas: int = Field(default=5, ge=1, le=1000)  # per namespace (the pet's owner)
+
+    def model_configured(self) -> bool:
+        return all(value.strip() for value in (
+            self.openai_base_url, self.model, self.openai_api_key.get_secret_value()))
 
     def token_namespaces(self) -> dict[str, str]:
         pairs = {}

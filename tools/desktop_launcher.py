@@ -255,6 +255,12 @@ def _run_session(data: Path, client_args: list[str], smoke: bool) -> int:
                     roster = request_json(env["ANIMA_API"] + "/v1/personas", env["ANIMA_TOKEN"])
                     if roster.get("items") != []:
                         raise RuntimeError("Smoke database was not empty.")
+                    model = request_json(
+                        env["ANIMA_API"] + "/v1/settings/model", env["ANIMA_TOKEN"])
+                    if (model.get("base_url") != "" or model.get("model") != ""
+                            or model.get("key_set") is not False
+                            or model.get("ready") is not False):
+                        raise RuntimeError("Fresh installation must have empty model settings.")
                     try:
                         request_json(env["ANIMA_API"] + "/v1/runtime")
                     except urllib.error.HTTPError as exc:

@@ -135,10 +135,25 @@ class LauncherTests(unittest.TestCase):
             denied = urllib.error.HTTPError("local", 401, "Unauthorized", {}, None)
             with patch.object(launcher.subprocess, "Popen", return_value=server) as spawn, \
                     patch.object(launcher, "wait_ready"), \
-                    patch.object(launcher, "request_json", side_effect=[{"items": []}, denied]):
+                    patch.object(launcher, "request_json", side_effect=[{"items": []}, {
+                        "base_url": "", "model": "", "key_set": False, "ready": False}, denied]):
                 self.assertEqual(launcher.run_session(Path(temp), [], smoke=True), 0)
                 spawn.assert_called_once()
             server.terminate.assert_called_once()
+
+    def test_smoke_rejects_prefilled_model_settings(self):
+        for model in ({"base_url": "https://example.invalid/v1", "model": ""},
+                      {"base_url": "", "model": "preset-model"}):
+            with self.subTest(model=model), tempfile.TemporaryDirectory() as temp:
+                server = Mock()
+                server.poll.return_value = None
+                with patch.object(launcher.subprocess, "Popen", return_value=server), \
+                        patch.object(launcher, "wait_ready"), \
+                        patch.object(launcher, "request_json", side_effect=[{"items": []}, {
+                            **model, "key_set": False, "ready": False}]):
+                    with self.assertRaisesRegex(RuntimeError, "empty model settings"):
+                        launcher.run_session(Path(temp), [], smoke=True)
+                server.terminate.assert_called_once()
 
     def test_smoke_temp_isolation_even_on_failure(self):
         with tempfile.TemporaryDirectory() as temp:

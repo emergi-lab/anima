@@ -136,7 +136,7 @@ func _build_model() -> Control:
 	_row(grid, "API Key", _key)
 	_model = LineEdit.new()
 	_model.name = "ModelName"
-	_model.placeholder_text = "服务商提供的模型 ID，例如 deepseek-chat"
+	_model.placeholder_text = "请输入服务商提供的模型 ID"
 	_model.max_length = 120
 	_row(grid, "模型名", _model)
 	var buttons := HBoxContainer.new()
@@ -204,6 +204,11 @@ func _body() -> Dictionary:
 	return body
 
 func _valid_model() -> bool:
+	var url := _url.text.strip_edges()
+	if not (url.begins_with("https://") or url.begins_with("http://")):
+		_say("请填写接口地址（以 http:// 或 https:// 开头）。", UI.C_ERROR)
+		_url.grab_focus()
+		return false
 	if _model.text.strip_edges().is_empty():
 		_say("请填写模型名（服务商提供的模型 ID）。", UI.C_ERROR)
 		_model.grab_focus()

@@ -132,9 +132,10 @@ def http_client(settings: Settings) -> httpx.AsyncClient:
 class OpenAIPersonaModel:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value() or "missing",
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key.get_secret_value(),
                                   base_url=settings.openai_base_url, max_retries=0,
-                                  http_client=http_client(settings))
+                                  http_client=http_client(settings)) \
+            if settings.model_configured() else None
         self.limit = asyncio.Semaphore(settings.max_concurrent_model_calls)
         method = _prompt("persona_method.md")
         self.systems = {
@@ -156,7 +157,8 @@ class OpenAIPersonaModel:
         self.versions = {k: _version(v) for k, v in self.systems.items()}
 
     async def close(self) -> None:
-        await self.client.close()
+        if self.client is not None:
+            await self.client.close()
 
     async def _call(self, call: str, payload: BaseModel, schema: type[BaseModel],
                     temperature: float, on_final: OnFinal | None = None) -> ModelResult:
@@ -174,8 +176,8 @@ class OpenAIPersonaModel:
                                   fingerprint=fingerprint,
                                   latency_ms=round((time.perf_counter() - started) * 1000))
 
-        if not self.settings.openai_api_key.get_secret_value():
-            raise fail("not_configured", "PERSONA_OPENAI_API_KEY is empty", False)
+        if not self.settings.model_configured() or self.client is None:
+            raise fail("not_configured", "Model URL, model and API key are required", False)
         request = dict(
             model=self.settings.model, temperature=temperature,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],

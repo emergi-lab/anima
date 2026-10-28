@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
 import platform
 import plistlib
@@ -61,6 +60,8 @@ def export_client(godot: Path, project: Path, destination: Path, target: str) ->
     run(godot, "--headless", "--path", project, "--editor", "--import")
     run(godot, "--headless", "--path", project, "--script",
         ROOT / "anima-pet/tests/font_fallback_smoke.gd", timeout=60)
+    run(godot, "--headless", "--path", project, "--script",
+        ROOT / "anima-pet/tests/settings_defaults_smoke.gd", timeout=60)
     if target == "windows-x64":
         destination.mkdir(parents=True)
         client = destination / "Anima.exe"
@@ -227,18 +228,8 @@ def main() -> int:
                 print(text, flush=True)
         if failed:
             raise RuntimeError("Packaged launcher/client integration smoke test failed")
-    output = ROOT / "dist"
-    output.mkdir(exist_ok=True)
-    archive = output / f"{package_name}.zip"
-    if system == "darwin":
-        run("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", package, archive)
-    else:
-        shutil.make_archive(str(archive.with_suffix("")), "zip",
-                            root_dir=work, base_dir=package_name)
-    with archive.open("rb") as stream:
-        checksum = hashlib.file_digest(stream, "sha256").hexdigest()
-    archive.with_suffix(".zip.sha256").write_text(f"{checksum}  {archive.name}\n", encoding="ascii")
-    print(f"Built: {archive}", flush=True)
+    # The tested staging directory feeds build_installers.py. Do not create a portable ZIP.
+    print(f"Built and smoke-tested payload: {package}", flush=True)
     return 0
 
 

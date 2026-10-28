@@ -1,9 +1,17 @@
 """The settings page's model service: saved to a private file, used at once, key never sent back."""
 
+import asyncio
 import json
 import os
+from unittest.mock import Mock
 
-from persona_os.infra.openai_model import ModelCallError
+import pytest
+from fastapi.testclient import TestClient
+from pydantic import BaseModel
+
+from persona_os.api.app import create_app
+from persona_os.config import Settings
+from persona_os.infra.openai_model import ModelCallError, OpenAIPersonaModel
 from tests.test_aftercare import AUTH, Recording
 from tests.test_chat import SAY
 
@@ -50,6 +58,8 @@ def test_no_key_refuses_model_work_at_once(make):
     client = make(None, backend="openai")  # a fresh clone: real backend, no key yet
     view = client.get("/v1/settings/model", headers=AUTH).json()
     assert view["backend"] == "openai" and not view["key_set"] and not view["ready"]
+    assert view["base_url"] == view["model"] == ""
+    assert client.app.state.model.inner.client is None
     did = client.post("/v1/distillations", headers=AUTH, json={"title": "x"}).json()
     for path, body in [("/v1/personas/p-a/chat:say", SAY),
                        ("/v1/personas/p-a/reflections", {"persona_name": "小希"}),
@@ -67,6 +77,76 @@ def test_no_key_refuses_model_work_at_once(make):
     assert saved["ready"]
     cleared = client.put("/v1/settings/model", headers=AUTH, json={**BODY, "api_key": ""}).json()
     assert cleared["backend"] == "openai" and not cleared["ready"]
+
+
+@pytest.mark.parametrize("model", ["", "   ", "\t\n"])
+def test_blank_model_is_not_saved(make, tmp_path, model):
+    client = make(None)
+    for endpoint in ("/v1/settings/model", "/v1/settings/model:test"):
+        method = client.put if endpoint.endswith("model") else client.post
+        assert method(endpoint, headers=AUTH, json={**BODY, "model": model}).status_code == 422
+    assert not list(tmp_path.glob("model-*.json"))
+
+
+def test_environment_and_saved_settings_survive_restart(tmp_path, monkeypatch):
+    monkeypatch.setenv("PERSONA_OPENAI_BASE_URL", "https://env.example/v1")
+    monkeypatch.setenv("PERSONA_MODEL", "env-model")
+    monkeypatch.setenv("PERSONA_OPENAI_API_KEY", "env-key-12345678")
+
+    def app():
+        return create_app(Settings(_env_file=None, service_tokens="t=anima",
+                                  database_url=f"sqlite+aiosqlite:///{tmp_path / 'fresh.db'}"))
+
+    with TestClient(app()) as client:
+        view = client.get("/v1/settings/model", headers=AUTH).json()
+        assert view["source"] == "env" and view["ready"]
+        assert view["base_url"] == "https://env.example/v1" and view["model"] == "env-model"
+        saved = client.put("/v1/settings/model", headers=AUTH,
+                           json={**BODY, "model": "  saved-model  "}).json()
+        assert saved["model"] == "saved-model" and saved["ready"]
+    with TestClient(app()) as client:
+        assert client.get("/v1/settings/model", headers=AUTH).json() == saved
+        assert client.app.state.model.inner.client.base_url == BODY["base_url"] + "/"
+    data = json.loads((tmp_path / "model-env.json").read_text())
+    assert data["api_key"] == "env-key-12345678"
+
+
+def test_key_only_is_not_ready(tmp_path, monkeypatch):
+    monkeypatch.setenv("PERSONA_OPENAI_API_KEY", "key-only-12345678")
+    settings = Settings(_env_file=None, service_tokens="t=anima",
+                        database_url=f"sqlite+aiosqlite:///{tmp_path / 'key-only.db'}")
+    with TestClient(create_app(settings)) as client:
+        view = client.get("/v1/settings/model", headers=AUTH).json()
+        assert view["key_set"] and not view["ready"]
+        assert view["base_url"] == view["model"] == ""
+        response = client.post("/v1/personas/p-a/chat:say", headers=AUTH, json=SAY)
+        assert response.status_code == 412
+        assert response.json()["error"]["code"] == "model_not_configured"
+
+
+@pytest.mark.parametrize("missing", ["openai_base_url", "model", "openai_api_key"])
+@pytest.mark.parametrize("empty", ["", "   "])
+def test_incomplete_adapter_never_creates_client_or_requests(monkeypatch, missing, empty):
+    constructor = Mock(side_effect=AssertionError("must not construct a network client"))
+    monkeypatch.setattr("persona_os.infra.openai_model.AsyncOpenAI", constructor)
+    values = {"openai_base_url": BODY["base_url"], "model": BODY["model"],
+              "openai_api_key": "test-key"}
+    values[missing] = empty
+    model = OpenAIPersonaModel(Settings(_env_file=None, **values))
+    assert model.client is None
+
+    class Payload(BaseModel):
+        pass
+
+    async def check():
+        for streamed in (None, Mock()):
+            with pytest.raises(ModelCallError) as error:
+                await model._call("respond", Payload(), Payload, 0, streamed)
+            assert error.value.kind == "not_configured" and not error.value.retryable
+        await model.close()
+
+    asyncio.run(check())
+    constructor.assert_not_called()
 
 
 def test_a_refused_key_says_so(make):

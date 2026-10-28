@@ -65,10 +65,13 @@ jobs:
         include:
           - os: windows-latest
             target: windows-x64
+            installer: -setup.exe
           - os: macos-15
             target: macos-arm64
+            installer: .dmg
           - os: macos-15-intel
             target: macos-x64
+            installer: .dmg
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -85,7 +88,7 @@ jobs:
       - name: Install verified Godot editor and export templates
         id: godot
         run: uv run --project anima-server --locked python tools/setup_godot.py --version 4.7.2
-      - name: Freeze backend, export client, test and archive
+      - name: Freeze backend, export client and test payload
         env:
           GODOT: ${{ steps.godot.outputs.godot }}
           TARGET: ${{ matrix.target }}
@@ -114,7 +117,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}
-          path: dist/Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}*
+          path: dist/Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}${{ matrix.installer }}*
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -140,6 +143,23 @@ jobs:
           pattern: Anima-*
           merge-multiple: true
           path: packages
+      - name: Verify installer-only assets and checksums
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          python - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          base = 'Anima-' + os.environ['VERSION']
+          names = [base + '-windows-x64-setup.exe',
+                   base + '-macos-arm64.dmg', base + '-macos-x64.dmg']
+          expected = set(names + [name + '.sha256' for name in names])
+          assert {p.name for p in Path('packages').iterdir()} == expected, 'Unexpected release assets'
+          for name in names:
+              with Path('packages', name).open('rb') as stream:
+                  digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+              assert Path('packages', name + '.sha256').read_text().split() == [digest, name]
+          PY
       - name: Create or update draft (never silently replace a published release)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,6 +172,6 @@ jobs:
             python -c 'import json; assert json.load(open("release.json"))["isDraft"], "Release is already published; refusing to overwrite assets"'
           else
             gh release create "$TAG" --verify-tag --draft --title "Anima $TAG" \
-              --notes 'Windows x64 安装向导（-setup.exe）、macOS Apple Silicon / Intel 安装镜像（.dmg），另保留 ZIP 便携版，均附 SHA-256。内含 Godot 和 Python 后端，无需安装开发环境。Windows 双击安装；Mac 打开 DMG，将 Anima 拖到 Applications。未使用 Windows 商业代码签名或 Apple Developer ID 公证，首次打开可能出现系统安全提示；模型 API 需在设置中自行配置。'
+              --notes 'Windows x64 安装向导（-setup.exe）、macOS Apple Silicon / Intel 安装镜像（.dmg），仅提供安装包与 SHA-256，不提供便携 ZIP。内含 Godot 和 Python 后端，无需安装开发环境。Windows 双击安装；Mac 打开 DMG，将 Anima 拖到 Applications。未使用 Windows 商业代码签名或 Apple Developer ID 公证，首次打开可能出现系统安全提示；接口 URL、模型名和 API Key 默认留空，需在设置中自行配置。'
           fi
           gh release upload "$TAG" packages/* --clobber

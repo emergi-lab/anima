@@ -2,6 +2,8 @@
 
 当前仅发布 **Windows x64 setup EXE、Mac Apple Silicon / Intel DMG** 和对应 SHA-256，不再生成或上传便携 ZIP。用户不需要安装 Python、uv 或 Godot。
 
+2026-10-28 已重新正式发布 [v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)（源码 `8fd4994`）：[标签构建 40676208344](https://github.com/emergi-lab/anima/actions/runs/40676208344) 全部成功，73 项后端 / 58 项工具测试、三平台安装及默认值自检通过；6 个附件的公开下载与摘要验证通过。
+
 ## 仓库配置
 
 - 公开仓库使用 GitHub 托管 `windows-latest`、`macos-15`（ARM64）、`macos-15-intel`（x64）；Ubuntu 仅做检查和发布管理，不构建 Linux 应用。

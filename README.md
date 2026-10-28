@@ -17,7 +17,9 @@
 
 ## 下载可运行的桌面版
 
-Windows x64、Mac Apple Silicon / Intel 的独立包由 [GitHub Actions](https://github.com/emergi-lab/anima/actions/workflows/desktop.yml) 构建，内含 Godot 和 Python 后端，**无需安装开发环境**。成功运行底部的 Artifacts 可下载；正式发布后也可从 [Releases](https://github.com/emergi-lab/anima/releases) 下载。
+**[下载正式版 v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)**：提供 Windows x64、Mac Apple Silicon / Intel 独立 ZIP 包，内含 Godot 和 Python 后端，**无需安装开发环境**，完整解压后运行。
+
+开发构建仍可从 [GitHub Actions](https://github.com/emergi-lab/anima/actions/workflows/desktop.yml) 成功运行底部的 Artifacts 下载；正式版本见 [Releases](https://github.com/emergi-lab/anima/releases)。
 
 打开方式、安全提示和数据位置见 [桌面发行包说明](docs/desktop-download.md)；工作流触发方式、GitHub 权限和版本发布见 [Actions 配置说明](docs/github-actions.md)。当前没有 Windows 商业签名或 Apple Developer ID 公证，首次运行可能出现系统安全提示。
 

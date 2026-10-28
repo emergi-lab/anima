@@ -1,6 +1,6 @@
 # GitHub Actions：构建 Windows 与 macOS 桌面包
 
-2026-10-28 已在 GitHub 托管 runner 跑通全部三个打包目标（源码 `81e2af5`）：[查看成功运行及下载 Artifacts](https://github.com/emergi-lab/anima/actions/runs/40663376327)。当前无需新增 Secrets 或更改仓库开关即可构建；尚未创建正式 Release，标签发布规则已配置如下。
+2026-10-28 已正式发布 **[v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)**（标签源码 `52660a9`）：[标签构建及 Release 附件上传全部成功](https://github.com/emergi-lab/anima/actions/runs/40665632353)，包含三个平台 ZIP 与 SHA-256，公开下载验证通过。当前无需新增 Secrets 或更改仓库开关即可构建；后续标签仍先创建草稿，再由维护者确认发布。
 
 ## 仓库需要的配置
 

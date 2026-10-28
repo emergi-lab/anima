@@ -37,7 +37,10 @@ def make(tmp_path):
         return client
     yield _make
     for client in clients:
-        client.__exit__(None, None, None)
+        try:
+            client.portal.call(client.app.state.aftercare.idle)
+        finally:
+            client.__exit__(None, None, None)
 
 
 @pytest.fixture(autouse=True)

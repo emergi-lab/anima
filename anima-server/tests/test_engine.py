@@ -80,7 +80,11 @@ def setup(tmp_path):
     clients = []
     yield lambda model=None: clients.append(_setup(model)) or clients[-1]
     for cl in clients:
-        cl.__exit__(None, None, None)
+        try:
+            # Closing an episode schedules work; drain it before disposing the test DB.
+            cl.portal.call(cl.app.state.aftercare.idle)
+        finally:
+            cl.__exit__(None, None, None)
 
 
 def test_lifecycle_two_calls_commit_and_state_chain(setup):

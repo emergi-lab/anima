@@ -2,6 +2,12 @@
 
 Godot 4.7 原生窗口（桌宠透明、无边框；所有窗口默认不置顶）。形象、主题与形象编辑器来自 `ustc/ustc-discussion-student`，此后独立演进。
 
+## 启动
+
+推荐在项目根目录运行 `bash ./start.sh`（macOS）或 `.\start.bat`（Windows），同时准备后端与客户端。指定 Godot 路径、Finder 双击入口与端口复用规则见 [项目 README](../README.md)。
+
+单独开发客户端时，先启动后端，再用 Godot 编辑器打开本目录的 `project.godot`。客户端默认连接 `http://127.0.0.1:8030`，令牌为 `anima-local-token`；自定义后端时须同步设置 `ANIMA_API` 和 `ANIMA_TOKEN`。
+
 ## 桌宠
 
 - ぴぽや（PIPOYA）分层像素形象，按 `屏幕缩放 × 界面大小` 取整数倍放大。待机会转头张望；开启"闲逛"时沿屏幕底边走动。
@@ -23,7 +29,7 @@ Godot 4.7 原生窗口（桌宠透明、无边框；所有窗口默认不置顶�
 | `scripts/avatar_view.gd` | 绘制形象：走路帧、说话晃动、头顶表情、名牌 |
 | `scripts/avatar_picker.gd` | 换形象窗口（照搬学生端编辑器） |
 | `scripts/chat.gd` | 聊天控制：输入条与气泡的位置、`chat:say` / `chat:end`、情绪 → 表情 |
-| `scripts/chat_bubble.gd` | 头顶气泡（透明窗口）：断行分页、逐字出现、思考中、淡出 |
+| `scripts/chat_bubble.gd` | 头顶气泡：断行分页、逐字出现、思考中、淡出；Windows 使用有边框的不透明窗口 |
 | `scripts/chat_input.gd` | 输入条窗口 |
 | `scripts/chat_window.gd` | 聊天窗口（输入条 ⤢ 放大）：最近聊天、正在输入、逐字出现、多行输入、收回 |
 | `scripts/chat_timeline.gd` | 聊天时间线组件（聊天记录与聊天窗口共用）：气泡、内心卡片、时间标记 |
@@ -57,19 +63,19 @@ Windows 上聊天输入条和气泡使用带系统标题栏的原生窗口，规
 
 运行 `Godot --path anima-pet --script res://tests/chat_render_smoke.gd` 可独立检查中文输入条与回复，不调用模型或改写用户配置；加 `-- --legacy` 对照旧窗口标志。桌面截图保存到 `user://chat-render-fixed.png` 或 `user://chat-render-legacy.png`，关闭预览主窗口结束。
 
-测试脚本会改用 `user://test.cfg`，不会改动真实设置。
+测试脚本使用独立的本地配置文件，但部分集成测试会向指定后端导入或提交人格；请为这些测试启动使用临时数据库的后端。以下命令在 **anima-pet 目录**执行，Godot 路径含空格时保留引号。
 
 ```bash
 G=/Applications/Godot.app/Contents/MacOS/Godot
-$G --headless --path . --script res://tests/check_scripts.gd
+"$G" --headless --path . --script res://tests/check_scripts.gd
 # 需要窗口和运行中的后端（Fake 模型即可）：
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/workbench_smoke.gd -- <截图目录> <素材.txt> <名字> [别名]
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/capture.gd -- <截图目录>
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/workbench_smoke.gd -- /tmp/anima-shots /path/to/material.txt 人物名字
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/capture.gd -- /tmp/anima-shots
 # 聊天：后端里已有该人格（先跑 workbench_smoke 导入一个）
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/chat_smoke.gd -- <截图目录> <persona_id> <名字> [一句话]
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/chat_window_smoke.gd -- <截图目录> <persona_id> <名字>
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/chat_smoke.gd -- /tmp/anima-shots test-persona 人物名字
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/chat_window_smoke.gd -- /tmp/anima-shots test-persona 人物名字
 # 反思：会真的提交一个新版本（请用数据库副本）
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/reflection_smoke.gd -- <截图目录> <persona_id> <名字>
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/reflection_smoke.gd -- /tmp/anima-shots test-persona 人物名字
 # 人格与演化：后端里已有该人格和几段聊天；会真的提交一个新版本（请用数据库副本）
-ANIMA_API=http://127.0.0.1:8032 $G --path . --script res://tests/persona_smoke.gd -- <截图目录> <persona_id> <名字>
+ANIMA_API=http://127.0.0.1:8032 "$G" --path . --script res://tests/persona_smoke.gd -- /tmp/anima-shots test-persona 人物名字
 ```

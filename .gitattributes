@@ -1,0 +1,3 @@
+# Unix launchers need LF line endings, including after a Windows checkout/edit.
+*.sh text eol=lf
+*.command text eol=lf

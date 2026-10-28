@@ -4,7 +4,7 @@ extends Window
 ## with — the owner fills in an OpenAI-compatible endpoint, model name and their own key.
 ## The thinking switch keeps its server setting. Pet options apply at
 ## once; the model service is tried with "测试连接" and takes effect on "保存", no restart.
-## The key stays on this machine (anima-server/data/model.json) and is never shown again.
+## The key stays in the backend's local data/model.json and is never shown again.
 
 const BASE_SIZE := Vector2i(720, 780)
 
@@ -116,7 +116,7 @@ func _show_pet() -> void:
 
 func _build_model() -> Control:
 	var col := _card("模型服务（你自己的 API）")
-	var hint := UI.label("人格用它来说话、蒸馏和演化。支持任何 OpenAI 兼容接口：填接口地址、模型名和 API Key，先测试连接再保存，保存后立即生效。Key 只保存在本机 anima-server/data/model.json（仅你的账户可读），不会再显示出来。",
+	var hint := UI.label("人格用它来说话、蒸馏和演化。支持任何 OpenAI 兼容接口：填接口地址、模型名和 API Key，先测试连接再保存，保存后立即生效。Key 只保存在本机后端数据目录的 data/model.json（仅你的账户可读），不会再显示出来。",
 		13, UI.C_MUTED)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(hint)

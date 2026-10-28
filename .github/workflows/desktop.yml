@@ -1,0 +1,131 @@
+name: Desktop builds
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['**/*.md']
+  pull_request:
+    paths-ignore: ['**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate sources
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.7'
+          python-version: '3.12'
+          enable-cache: true
+      - id: version
+        name: Validate version
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          uv run --python 3.12 --no-project python - <<'PY'
+          import os, re, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('anima-server/pyproject.toml').read_text())['project']['version']
+          tag = os.environ['TAG']
+          if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+              raise SystemExit('Project version must be MAJOR.MINOR.PATCH')
+          if tag and tag != f'v{version}':
+              raise SystemExit(f'Tag {tag!r} must match project version v{version}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\n')
+          PY
+      - run: python tools/check_publish.py --all
+      - run: uv sync --project anima-server --locked --extra dev
+      - run: uv run --locked --extra dev ruff check .
+        working-directory: anima-server
+      - run: uv run --project anima-server --locked --extra dev ruff check --config anima-server/pyproject.toml tools/build_desktop.py tools/setup_godot.py tools/desktop_launcher.py tools/tests/test_desktop_launcher.py tools/tests/test_setup_godot.py tools/tests/test_build_desktop.py
+      - run: uv run --project anima-server --locked --extra dev pytest -q anima-server/tests
+      - run: uv run --project anima-server --locked --extra dev python -m unittest discover -s tools/tests -v
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows-x64
+          - os: macos-15
+            target: macos-arm64
+          - os: macos-15-intel
+            target: macos-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.11.7'
+          python-version: '3.12'
+          enable-cache: true
+      - name: Install locked backend dependencies
+        run: uv sync --project anima-server --locked --no-dev
+      - name: Install verified Godot editor and export templates
+        id: godot
+        run: uv run --project anima-server --locked python tools/setup_godot.py --version 4.7.2
+      - name: Freeze backend, export client, test and archive
+        env:
+          GODOT: ${{ steps.godot.outputs.godot }}
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        shell: bash
+        run: uv run --project anima-server --locked --with pyinstaller==6.20.0 python tools/build_desktop.py --godot "$GODOT" --target "$TARGET" --version "$VERSION"
+      - name: Upload downloadable packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}
+          path: dist/Anima-${{ needs.validate.outputs.version }}-${{ matrix.target }}.zip*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  release:
+    name: Prepare release draft
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Anima-*
+          merge-multiple: true
+          path: packages
+      - name: Create or update draft (never silently replace a published release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --json isDraft > release.json 2>/dev/null; then
+            python -c 'import json; assert json.load(open("release.json"))["isDraft"], "Release is already published; refusing to overwrite assets"'
+          else
+            gh release create "$TAG" --verify-tag --draft --title "Anima $TAG" \
+              --notes 'Windows x64、macOS Apple Silicon / Intel 独立桌面包，内含 Godot 和 Python 后端。无需安装开发环境。未使用 Windows 商业代码签名或 Apple Developer ID 公证，首次打开可能出现系统安全提示。解压后请阅读 README.md；模型 API 需在设置中自行配置。'
+          fi
+          gh release upload "$TAG" packages/* --clobber

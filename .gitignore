@@ -3,3 +3,6 @@
 *.db.*
 __pycache__/
 *.py[cod]
+.build/
+dist/
+.ruff_cache/

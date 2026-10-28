@@ -78,23 +78,35 @@ $links = @(
 $defaultInstall = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\Anima'
 if ((Test-Path $arp) -or (Test-Path -LiteralPath $defaultInstall)) { throw 'Existing Anima installation; refusing to test' }
 foreach ($link in $links) { if (Test-Path -LiteralPath $link) { throw "Existing shortcut: $link" } }
-$work = Join-Path $env:RUNNER_TEMP ('anima-installer-' + [Guid]::NewGuid().ToString('N'))
+$work = Join-Path $env:RUNNER_TEMP ('anima installer test-' + [Guid]::NewGuid().ToString('N'))
 $target = Join-Path $work 'Anima'
-$variables = @('LOCALAPPDATA', 'APPDATA', 'ANIMA_DATA_DIR', 'ANIMA_SMOKE_LOG_DIR')
+$variables = @('LOCALAPPDATA', 'APPDATA', 'ANIMA_DATA_DIR', 'ANIMA_SMOKE_LOG_DIR', 'ANIMA_INSTALL_LOG_DIR')
 $saved = @{}
 foreach ($name in $variables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 function Assert([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
 function Run-Wait([string]$Exe, [string]$Arguments) {
+    Write-Host "RUN: $Exe $Arguments"
+    Write-Host "OS: $([Environment]::OSVersion); 64-bit OS: $([Environment]::Is64BitOperatingSystem)"
     $process = Start-Process -FilePath $Exe -ArgumentList $Arguments -PassThru
     if (-not $process.WaitForExit(240000)) { throw "Timed out (process not killed): $Exe" }
     $process.Refresh()
-    Assert ($process.ExitCode -eq 0) "$Exe returned $($process.ExitCode)"
+    Write-Host "EXIT: $($process.ExitCode)"
+    if ($env:ANIMA_INSTALL_LOG_DIR -and (Test-Path -LiteralPath $env:ANIMA_INSTALL_LOG_DIR)) {
+        foreach ($log in Get-ChildItem -LiteralPath $env:ANIMA_INSTALL_LOG_DIR -File) {
+            Write-Host "NSIS DIAGNOSTICS: $($log.FullName)"
+            Get-Content -LiteralPath $log.FullName | ForEach-Object { Write-Host $_ }
+        }
+    }
+    Assert ($process.ExitCode -eq 0) "$Exe returned $($process.ExitCode); diagnostics: $env:ANIMA_INSTALL_LOG_DIR"
 }
 try {
     $env:LOCALAPPDATA = Join-Path $work 'local'
     $env:APPDATA = Join-Path $work 'roaming'
     $env:ANIMA_DATA_DIR = Join-Path $env:LOCALAPPDATA 'Anima'
     $env:ANIMA_SMOKE_LOG_DIR = Join-Path $work 'smoke-logs'
+    $env:ANIMA_INSTALL_LOG_DIR = Join-Path $work 'installer-logs'
+    New-Item -ItemType Directory -Path $env:ANIMA_INSTALL_LOG_DIR -Force | Out-Null
+    Write-Host "Isolated installation target: $target"
     $godotData = Join-Path $env:APPDATA 'Godot\app_userdata\Anima'
     foreach ($dir in @($env:ANIMA_DATA_DIR, $godotData, $env:ANIMA_SMOKE_LOG_DIR)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null

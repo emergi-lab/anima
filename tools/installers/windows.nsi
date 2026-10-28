@@ -1,6 +1,7 @@
 ﻿; makensis /DVERSION=0.0.1 /DPAYLOAD=C:\stage\Anima /DOUTPUT=C:\out\Anima-0.0.1-windows-x64-setup.exe windows.nsi
 Unicode true
 RequestExecutionLevel user
+ManifestSupportedOS Win10
 !include MUI2.nsh
 !include LogicLib.nsh
 !include FileFunc.nsh
@@ -48,6 +49,35 @@ SetCompressor /SOLID lzma
 LangString CloseFirst ${LANG_ENGLISH} "Please exit Anima before installing or upgrading. No processes will be terminated. Continue?"
 LangString CloseFirst ${LANG_SIMPCHINESE} "安装或升级前请先退出 Anima。安装器不会终止进程。是否继续？"
 
+; Optional CI diagnostics: create a unique file in an explicitly supplied existing
+; directory, never overwrite a caller-selected file. No log in normal installs.
+Var DiagnosticLog
+Var DiagnosticHandle
+Var DiagnosticHadErrors
+!macro Trace MESSAGE
+  StrCpy $DiagnosticHadErrors 0
+  ${If} ${Errors}
+    StrCpy $DiagnosticHadErrors 1
+  ${EndIf}
+  ${If} $DiagnosticLog != ""
+    FileOpen $DiagnosticHandle "$DiagnosticLog" a
+    FileSeek $DiagnosticHandle 0 END
+    FileWrite $DiagnosticHandle "${MESSAGE}$\r$\n"
+    FileClose $DiagnosticHandle
+  ${EndIf}
+  ClearErrors
+  ${If} $DiagnosticHadErrors == 1
+    SetErrors
+  ${EndIf}
+!macroend
+!macro InitDiagnostics
+  ReadEnvStr $DiagnosticLog ANIMA_INSTALL_LOG_DIR
+  ${If} $DiagnosticLog != ""
+    GetTempFileName $DiagnosticLog "$DiagnosticLog"
+  ${EndIf}
+  !insertmacro Trace "START instdir=$INSTDIR; temp=$TEMP; profile=$PROFILE"
+!macroend
+
 ; Reject reparse points in the tree AND every ancestor: even exact file deletion
 ; must never follow a user-created junction into unrelated data.
 !macro SafetyFunctions PREFIX
@@ -59,8 +89,10 @@ Function ${PREFIX}CheckTree
   System::Call 'kernel32::GetFileAttributesW(w r0) i.r1'
   IntCmp $1 -1 tree_done
   IntOp $2 $1 & 0x400
-  IntCmp $2 0 +2
+  ${If} $2 != 0
+    !insertmacro Trace "ABORT reparse point: $0"
     Abort "Reparse points are not allowed in the installation path."
+  ${EndIf}
   IntOp $2 $1 & 0x10
   IntCmp $2 0 tree_done
   FindFirst $1 $2 "$0\*"
@@ -83,12 +115,24 @@ Function ${PREFIX}CheckTree
 FunctionEnd
 
 Function ${PREFIX}ValidatePath
-  GetFullPathName $0 "$INSTDIR"
-  StrCmp $0 "$INSTDIR" +2
+  ; NSIS GetFullPathName also resolves long filenames and returns empty when
+  ; intermediate directories do not exist. The Windows API is lexical only.
+  System::Call 'kernel32::GetFullPathNameW(w "$INSTDIR", i ${NSIS_MAX_STRLEN}, w .r0, p 0) i.r1'
+  !insertmacro Trace "PATH canonical=$0; length=$1; requested=$INSTDIR"
+  ${If} $1 == 0
+  ${OrIf} $1 >= ${NSIS_MAX_STRLEN}
+    !insertmacro Trace "ABORT cannot canonicalize path"
+    Abort "Cannot canonicalize installation path."
+  ${EndIf}
+  ${If} $0 != $INSTDIR
+    !insertmacro Trace "ABORT path is not canonical"
     Abort "Use a canonical absolute installation path (no trailing slash)."
+  ${EndIf}
   ${GetFileName} "$INSTDIR" $0
-  StrCmp $0 "Anima" +2
+  ${If} $0 != "Anima"
+    !insertmacro Trace "ABORT directory must end in Anima; leaf=$0"
     Abort "Installation directory must end in Anima."
+  ${EndIf}
   StrCmp $INSTDIR "$PROFILE" unsafe_path
   StrCmp $INSTDIR "$LOCALAPPDATA" unsafe_path
   StrCmp $INSTDIR "$APPDATA" unsafe_path
@@ -101,6 +145,7 @@ Function ${PREFIX}ValidatePath
     StrCmp $0 "$PROGRAMFILES" unsafe_path
     StrCmp $0 "$PROGRAMFILES64" unsafe_path
     System::Call 'kernel32::GetFileAttributesW(w r0) i.r1'
+    !insertmacro Trace "ANCESTOR path=$0; attributes=$1"
     IntCmp $1 -1 ancestor_next
     IntOp $1 $1 & 0x400
     IntCmp $1 0 ancestor_next unsafe_path unsafe_path
@@ -113,8 +158,10 @@ Function ${PREFIX}ValidatePath
   ancestors_done:
     Push "$INSTDIR"
     Call ${PREFIX}CheckTree
+    !insertmacro Trace "PATH validation passed"
     Return
   unsafe_path:
+    !insertmacro Trace "ABORT unsafe path; ancestor=$0; attributes=$1"
     Abort "Unsafe installation directory."
 FunctionEnd
 !macroend
@@ -122,12 +169,17 @@ FunctionEnd
 !insertmacro SafetyFunctions "un."
 
 Function .onInit
+  !insertmacro InitDiagnostics
+  !insertmacro Trace "CHECK x64 Windows 10+"
   ${IfNot} ${RunningX64}
+    !insertmacro Trace "ABORT RunningX64=false"
     Abort "Anima requires x64 Windows 10 or later."
   ${EndIf}
   ${IfNot} ${AtLeastWin10}
+    !insertmacro Trace "ABORT AtLeastWin10=false"
     Abort "Anima requires Windows 10 or later."
   ${EndIf}
+  !insertmacro Trace "OS checks passed"
   SetRegView 64
   SetShellVarContext current
   !insertmacro MUI_LANGDLL_DISPLAY
@@ -135,7 +187,10 @@ FunctionEnd
 
 Section "Anima"
   Call ValidatePath
+  ; FindNext sets the error flag at normal end-of-enumeration.
+  ClearErrors
   ReadRegStr $0 HKCU "${ARP}" "InstallLocation"
+  !insertmacro Trace "OWNERSHIP registered=$0; target=$INSTDIR"
   StrCmp $0 "" new_install
   StrCmp $0 "$INSTDIR" 0 conflict
   FileOpen $1 "$INSTDIR\.anima-install" r
@@ -163,8 +218,10 @@ Section "Anima"
     MessageBox MB_OKCANCEL|MB_ICONINFORMATION "$(CloseFirst)" IDOK copy_files
     Abort
   conflict:
+    !insertmacro Trace "FAIL ownership/nonempty-directory/shortcut conflict; entry=$2"
     Abort "Anima is installed elsewhere, or this directory is not an owned Anima installation."
   copy_files:
+    !insertmacro Trace "COPY payload"
     SetOverwrite on
     ClearErrors
     !insertmacro InstallPayload
@@ -187,23 +244,31 @@ Section "Anima"
     WriteRegDWORD HKCU "${ARP}" "NoRepair" 1
     Goto installed
   copy_failed:
+    !insertmacro Trace "FAIL copying payload or writing uninstaller"
     Abort "Installation failed. Exit Anima and retry; no process was killed."
   installed:
+    !insertmacro Trace "INSTALL complete"
 SectionEnd
 
 Function un.onInit
+  !insertmacro InitDiagnostics
+  !insertmacro Trace "UNINSTALL ownership/path checks"
   SetRegView 64
   SetShellVarContext current
   Call un.ValidatePath
+  ClearErrors
   ReadRegStr $0 HKCU "${ARP}" "InstallLocation"
-  StrCmp $0 "$INSTDIR" +2
+  ${If} $0 != $INSTDIR
+    !insertmacro Trace "ABORT registration mismatch; registered=$0"
     Abort "Installation registration does not match."
+  ${EndIf}
   FileOpen $1 "$INSTDIR\.anima-install" r
   IfErrors un_bad_owner
   FileRead $1 $2
   FileClose $1
   StrCmp $2 "${OWNER}" un_owner_ok
   un_bad_owner:
+    !insertmacro Trace "ABORT ownership marker missing or invalid"
     Abort "Installation ownership marker is missing."
   un_owner_ok:
 FunctionEnd
@@ -223,6 +288,8 @@ Section "Uninstall"
   RMDir "$INSTDIR"
   Goto un_done
   un_locked:
+    !insertmacro Trace "FAIL removing program files (locked?)"
     Abort "Some program files could not be removed. Exit Anima and retry."
   un_done:
+    !insertmacro Trace "UNINSTALL complete"
 SectionEnd

@@ -17,7 +17,7 @@
 
 ## 下载可运行的桌面版
 
-**[下载正式版 v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)**：提供 Windows x64、Mac Apple Silicon / Intel 独立 ZIP 包，内含 Godot 和 Python 后端，**无需安装开发环境**，完整解压后运行。
+**[下载正式版 v0.0.1](https://github.com/emergi-lab/anima/releases/tag/v0.0.1)**：Windows x64 下载 `-setup.exe` 双击安装；Mac Apple Silicon / Intel 下载对应 `.dmg`，打开后将 Anima 拖入 Applications。内含 Godot 和 Python 后端，**无需安装开发环境**；ZIP 另保留为可选便携版。
 
 开发构建仍可从 [GitHub Actions](https://github.com/emergi-lab/anima/actions/workflows/desktop.yml) 成功运行底部的 Artifacts 下载；正式版本见 [Releases](https://github.com/emergi-lab/anima/releases)。
 

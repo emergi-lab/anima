@@ -6,6 +6,16 @@
 
 这里的“蒸馏”是调用模型提取证据、归纳人格信念，不是训练或微调模型权重。人格引擎参考 EMERGI-PersonaOS（arXiv 2609.27417）的三层结构：叙事身份、特征适应、特质；信念、当前状态与记忆分别保存。
 
+## 演示视频
+
+**审阅并导入孙悟空的人格**
+
+https://github.com/user-attachments/assets/3be63b17-a468-4589-88cd-61c9ec0fbf82
+
+**在桌面上和孙悟空聊天**
+
+https://github.com/user-attachments/assets/81d20f1c-c7ae-4a48-ae2a-84f40cf3730a
+
 ## 项目结构
 
 | 路径 | 内容 |

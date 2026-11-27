@@ -6,6 +6,16 @@ A pixel-art desktop pet that builds a character's persona from evidence in novel
 
 Here, “distillation” means using a model to extract evidence and synthesize persona beliefs. It does not train or fine-tune model weights. The persona engine draws on the three-layer structure of EMERGI-PersonaOS (arXiv 2609.27417): narrative identity, characteristic adaptations, and traits. Beliefs, current state, and memories are stored separately.
 
+## Demo videos
+
+**Review and import Sun Wukong’s persona**
+
+https://github.com/user-attachments/assets/3be63b17-a468-4589-88cd-61c9ec0fbf82
+
+**Chat with Sun Wukong on the desktop**
+
+https://github.com/user-attachments/assets/81d20f1c-c7ae-4a48-ae2a-84f40cf3730a
+
 ## Project structure
 
 | Path | Description |
